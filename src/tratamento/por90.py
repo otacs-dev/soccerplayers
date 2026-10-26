@@ -1,0 +1,1 @@
+# métrica ÷ minutos × 90
