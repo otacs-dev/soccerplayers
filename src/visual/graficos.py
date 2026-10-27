@@ -146,6 +146,7 @@ def grafico_boxplots_indices(df: pd.DataFrame) -> go.Figure:
 		labels={coluna_academia: "Academia", "indice": "Índice (0–100)"},
 	)
 	figura.update_yaxes(range=[0, 100], dtick=20)
+	figura.for_each_annotation(lambda anotacao: anotacao.update(text=anotacao.text.replace("perfil=", "")))
 	figura.update_layout(showlegend=False, boxmode="group")
 	return _base_figura(figura, "Distribuição dos índices por academia", altura=470)
 

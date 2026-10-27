@@ -147,6 +147,9 @@ python -m src.coleta.sofascore coletar
 
 # 6. pipeline completo
 python run_pipeline.py
+
+# 7. criar/atualizar o banco SQLite com os CSVs processados
+python -m src.db
 ```
 
 Execute sempre a partir da **raiz do projeto**, para os imports `src.…` funcionarem. Para os testes:
@@ -154,6 +157,20 @@ Execute sempre a partir da **raiz do projeto**, para os imports `src.…` funcio
 ```bash
 python -m pytest
 ```
+
+### Banco SQLite
+
+Os scripts em `sql/` criam as tabelas, índices, views e consultas de qualidade. Depois de executar o pipeline, carregue os dados processados no banco local com:
+
+```bash
+python -m src.db
+```
+
+O arquivo `data/processed/formacao_jogadores.sqlite3` é criado ou atualizado a partir dos CSVs de `data/processed/` e `data/interim/`. Para conferir a qualidade no SQLite, execute as consultas de `sql/04_qualidade_dados.sql`; as consultas de inconsistência devem retornar zero linhas.
+
+### Notebooks
+
+Abra `notebooks/01_exploracao.ipynb` para conferir a composição da amostra, índices e cobertura. Use `notebooks/02_resultados.ipynb` para apresentar medianas, quartis, testes e gráficos PNG. Se o kernel ainda não estiver configurado, selecione o ambiente virtual `.venv` do projeto. Os notebooks leem os CSVs produzidos por `python run_pipeline.py`.
 
 ### Executar o frontend
 
@@ -202,7 +219,7 @@ npm run build
 - [ ] Descritiva por academia
 - [ ] Kruskal-Wallis com tamanho de efeito
 - [ ] Mann-Whitney entre pares
-- [ ] Gráficos
+- [x] Gráficos PNG (`reports/graficos/`)
 - [ ] `metodos_academias.csv` (qualitativo, com fonte em cada linha)
 
 **Fora do escopo mínimo (trabalhos futuros)**

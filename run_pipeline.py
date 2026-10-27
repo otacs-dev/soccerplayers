@@ -252,7 +252,7 @@ def executar_pipeline() -> dict[str, Path]:
 	if "idade_estreia" in base_visual and base_visual["idade_estreia"].notna().any():
 		figuras["idade_estreia"] = grafico_idade_estreia(base_visual)
 	for nome, figura in figuras.items():
-		figura.write_html(DIR_GRAFICOS / f"{nome}.html", include_plotlyjs="cdn", full_html=True)
+		figura.write_image(DIR_GRAFICOS / f"{nome}.png", format="png", width=1400, scale=2)
 
 	return {
 		"indices": ARQ_INDICES,
