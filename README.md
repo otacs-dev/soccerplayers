@@ -155,6 +155,28 @@ Execute sempre a partir da **raiz do projeto**, para os imports `src.…` funcio
 python -m pytest
 ```
 
+### Executar o frontend
+
+Requisitos: Node.js e npm. Na primeira vez, instale as dependências do frontend:
+
+```bash
+cd frontend
+npm install
+```
+
+Depois, sempre que quiser iniciar o dashboard, execute na raiz do projeto:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Abra o endereço mostrado no terminal (normalmente `http://localhost:5173`). Deixe o terminal aberto enquanto estiver usando o dashboard; para encerrar o servidor, pressione `Ctrl+C`. Para gerar a versão de produção, execute dentro de `frontend`:
+
+```bash
+npm run build
+```
+
 -----------------------------------------------------------------------------------------------------------------------------------------
 
 ### Ordem do pipeline

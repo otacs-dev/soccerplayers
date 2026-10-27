@@ -29,6 +29,7 @@ from config import settings
 
 # Mínimo de minutos na temporada para o valor por 90 ser confiável.
 MIN_MIN_TEMPORADA = getattr(settings, "MIN_MIN_TEMPORADA", 450)
+settings.MIN_MIN_TEMPORADA = MIN_MIN_TEMPORADA
 
 ARQ_SOFASCORE = settings.DIR_INTERIM / "sofascore_temporada.csv"
 SAIDA_APPEARANCES = settings.DIR_INTERIM / "por90_appearances.csv"
@@ -53,7 +54,10 @@ def por90(valor, minutos, minimo=MIN_MIN_TEMPORADA):
     """valor / minutos x 90, ou NaN se a amostra for pequena demais."""
     valor = pd.to_numeric(valor, errors="coerce")
     minutos = pd.to_numeric(minutos, errors="coerce")
-    return (valor / minutos * 90).where(minutos >= minimo)
+    taxa = (valor / minutos * 90)
+    if isinstance(taxa, (int, float)):
+        return float(taxa) if pd.notna(minutos) and pd.to_numeric(minutos) >= minimo else float("nan")
+    return taxa.where(pd.to_numeric(minutos) >= minimo)
 
 
 def eh_taxa(metrica):

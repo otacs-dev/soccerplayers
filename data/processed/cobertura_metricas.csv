@@ -1,0 +1,14 @@
+﻿indice,metrica,n_jogadores,peso,n_amostra,proporcao_coberta
+explosivo,aerialDuelsWon,34,1.5,35,0.9714285714285714
+explosivo,groundDuelsWon,34,1.3,35,0.9714285714285714
+explosivo,height_in_cm,35,0.8,35,1.0
+explosivo,metersCoveredSprinting,30,1.2,35,0.8571428571428571
+explosivo,numberOfSprints,30,1.0,35,0.8571428571428571
+explosivo,successfulDribbles,34,1.2,35,0.9714285714285714
+tecnico,accurateFinalThirdPasses,34,1.5,35,0.9714285714285714
+tecnico,accuratePasses,34,1.0,35,0.9714285714285714
+tecnico,assists,35,0.8,35,1.0
+tecnico,expectedAssists,33,1.5,35,0.9428571428571428
+tecnico,goals,35,0.7,35,1.0
+tecnico,keyPasses,34,1.5,35,0.9714285714285714
+tecnico,successfulDribbles,34,1.0,35,0.9714285714285714
