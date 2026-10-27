@@ -1,1 +1,54 @@
-# categorias posicionais
+# Categorias posicionais usadas para o cálculo de percentis
+# Regra: todos os jogadores são comparados dentro do grupo funcional mais próximo,
+# para reduzir o efeito de posição na distribuição das métricas.
+
+categorias:
+  goleiro:
+    descricao: "Goleiro"
+    posicoes_primarias: ["Goalkeeper"]
+    sub_posicoes: ["Goalkeeper"]
+    fallback: null
+
+  zagueiro:
+    descricao: "Zagueiro"
+    posicoes_primarias: ["Defender"]
+    sub_posicoes: ["Centre-Back"]
+    fallback: "Defender"
+
+  lateral:
+    descricao: "Lateral"
+    posicoes_primarias: ["Defender"]
+    sub_posicoes: ["Left-Back", "Right-Back"]
+    fallback: "Defender"
+
+  meio_campista_defensivo_central:
+    descricao: "Meio-campista defensivo / central"
+    posicoes_primarias: ["Midfield"]
+    sub_posicoes: ["Defensive Midfield", "Central Midfield"]
+    fallback: "Midfield"
+
+  meia_ofensivo_ponta:
+    descricao: "Meia ofensivo / ponta"
+    posicoes_primarias: ["Midfield", "Attack"]
+    sub_posicoes: ["Attacking Midfield", "Left Winger", "Right Winger"]
+    fallback: "Midfield"
+
+  centroavante:
+    descricao: "Centroavante"
+    posicoes_primarias: ["Attack"]
+    sub_posicoes: ["Centre-Forward"]
+    fallback: "Attack"
+
+regras:
+  - "O percentil é calculado dentro da categoria mais específica possível."
+  - "Se uma categoria tiver poucos jogadores, a comparação cai para a categoria pai (Defender, Midfield ou Attack)."
+  - "Os rótulos seguem o padrão usado no Transfermarkt e no dataset validado."
+  - "A definição da categoria deve ser fixa antes da interpretação dos resultados."
+
+ordem:
+  - "goleiro"
+  - "zagueiro"
+  - "lateral"
+  - "meio_campista_defensivo_central"
+  - "meia_ofensivo_ponta"
+  - "centroavante"

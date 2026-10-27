@@ -1,1 +1,107 @@
-# métricas de cada índice
+# Definição prévia dos índices do estudo
+# As métricas abaixo foram escolhidas antes da análise dos resultados para manter
+# a lógica do estudo consistente com o README.
+
+indices:
+  tecnico:
+    descricao: "Precisão, controle e inteligência com a bola"
+    agregacao: "media_dos_percentis"
+    fontes:
+      - "sofascore"
+      - "appearances"
+    regras:
+      - "usar apenas métricas em escala por 90 ou perfil do jogador"
+      - "excluir ratings, taxas e métricas sem sentido em minutos"
+      - "manter a definição antes da inspeção dos resultados"
+      - "percentil calculado dentro da posição; fallback para grupo de posição mais amplo se necessário"
+    variaveis:
+      - nome: "accuratePasses"
+        fonte: "sofascore"
+        peso: 1.0
+        tipo: "por_90"
+        posicoes: ["all"]
+      - nome: "accurateFinalThirdPasses"
+        fonte: "sofascore"
+        peso: 1.5
+        tipo: "por_90"
+        posicoes: ["all"]
+      - nome: "keyPasses"
+        fonte: "sofascore"
+        peso: 1.5
+        tipo: "por_90"
+        posicoes: ["all"]
+      - nome: "expectedAssists"
+        fonte: "sofascore"
+        peso: 1.5
+        tipo: "por_90"
+        posicoes: ["all"]
+      - nome: "successfulDribbles"
+        fonte: "sofascore"
+        peso: 1.0
+        tipo: "por_90"
+        posicoes: ["all"]
+      - nome: "assists"
+        fonte: "appearances"
+        peso: 0.8
+        tipo: "por_90"
+        posicoes: ["all"]
+      - nome: "goals"
+        fonte: "appearances"
+        peso: 0.7
+        tipo: "por_90"
+        posicoes: ["all"]
+
+  explosivo:
+    descricao: "Capacidade física, velocidade, força e ganho de disputa"
+    agregacao: "media_dos_percentis"
+    fontes:
+      - "sofascore"
+      - "players"
+    regras:
+      - "usar substitutos físicos quando a métrica direta não existe"
+      - "priorizar duelos ganhos, dribles bem-sucedidos e deslocamento em alta velocidade"
+      - "altura e peso entram como proxy de força e presença física"
+      - "a interpretação é aproximada, conforme o README"
+    variaveis:
+      - nome: "successfulDribbles"
+        fonte: "sofascore"
+        peso: 1.2
+        tipo: "por_90"
+        posicoes: ["all"]
+      - nome: "aerialDuelsWon"
+        fonte: "sofascore"
+        peso: 1.5
+        tipo: "por_90"
+        posicoes: ["all"]
+      - nome: "groundDuelsWon"
+        fonte: "sofascore"
+        peso: 1.3
+        tipo: "por_90"
+        posicoes: ["all"]
+      - nome: "metersCoveredSprinting"
+        fonte: "sofascore"
+        peso: 1.2
+        tipo: "por_90"
+        posicoes: ["all"]
+      - nome: "numberOfSprints"
+        fonte: "sofascore"
+        peso: 1.0
+        tipo: "por_90"
+        posicoes: ["all"]
+      - nome: "height_in_cm"
+        fonte: "players"
+        peso: 0.8
+        tipo: "perfil"
+        posicoes: ["all"]
+
+# Regras globais da construção dos índices
+regras_gerais:
+  - "Todos os valores entram padronizados por 90 minutos, exceto atributos fixos do perfil do jogador."
+  - "Percentis são calculados dentro da posição; se a posição tiver poucos casos, usa o grupo de posição mais amplo."
+  - "A média dos percentis define o índice final, em escala 0 a 100."
+  - "Metas e assistências entram no técnico, mas não substituem indicadores de construção e criação, que têm peso maior."
+  - "Explosivo usa substitutos físicos e de disputa porque velocidade e força não estão em dados de eventos de forma direta."
+
+# Observação final
+# O objetivo é manter a definição dos índices fixa antes da comparação entre academias,
+# evitando que as métricas sejam escolhidas por resultado.

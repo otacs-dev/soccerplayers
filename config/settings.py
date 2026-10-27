@@ -58,16 +58,29 @@ CAND_ESTREIA_DESDE = "2013-01-01"
 CAND_MIN_MINUTOS = 500
 
 # 2) Critério FINAL, aplicado só aos jogadores confirmados como formados.
-#    Pode ser alterado sem refazer a conferência manual.
+#    Ajustes aqui afetam apenas a amostra final; a conferência manual continua
+#    válida e não precisa ser refeita.
+#
+# Regras finais da amostra:
+# - estreia no profissional a partir de 2016
+# - 900 minutos ou mais no time principal
+# - até 15 jogadores por academia, ordenados por minutos no time principal
+# - se um clube cair abaixo de 6 jogadores, o script avisa e o estudo passa a
+#   tratar essa comparação como pequena e com efeito mais relevante do que p-valor
 ESTREIA_DESDE = "2016-01-01"
 MIN_MINUTOS = 900
 MAX_POR_CLUBE = 15  # os de mais minutos
 
 # Abaixo disso o script avisa que o grupo ficou pequeno demais para testes
+# Este valor é um limite de "alerta" e não um corte rígido do estudo.
 MIN_RECOMENDADO_POR_CLUBE = 6
 
 # O appearances.csv começa em julho de 2012: quem estreou antes aparece com
 # estreia em 2012. Por isso cortes de estreia anteriores a 2013 não são confiáveis.
+# O conjunto final validado do projeto tem 35 jogadores e a distribuição por academia
+# não é perfeitamente equilibrada: Barcelona 15, Liverpool 8, Manchester City 7,
+# Real Madrid 5. Por isso o limite de 6 jogadores é usado como alerta de viés de
+# tamanho amostral e não como corte duro do estudo.
 INICIO_COBERTURA = "2013-01-01"
 
 
