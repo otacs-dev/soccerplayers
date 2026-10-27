@@ -68,6 +68,7 @@ As métricas de cada índice estão em `config/metricas.yaml` e foram **definida
 | `transfermarkt-datasets` (GitHub/Kaggle) | Jogadores, posições, aparições, valores, transferências | Pode não trazer o clube formador pronto; conferir as colunas reais |
 | Páginas do Transfermarkt e Wikipédia | Histórico de base (clube formador, anos na base, estreia) | Preenchimento manual em `data/manual/` |
 | FBref | Dados básicos: jogos, minutos, gols, assistências | Perdeu as estatísticas avançadas (xG, passes progressivos); usamos só o básico |
+| Sofascore | Estatísticas por temporada (passes, dribles, duelos) | IDs dos 35 jogadores mapeados em `data/manual/ids_sofascore.csv`. Coleta direta via `curl_cffi` |
 
 Respeite os termos de uso de cada fonte. Os dados brutos **não são versionados** (ver `.gitignore`).
 
@@ -137,9 +138,14 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 # 4. variáveis de ambiente
-cp .env.example .env             # ajuste os valores, se necessário
+cp .env.example .env             # ajuste se necessário
 
-# 5. pipeline completo
+# 5. coleta e processamento
+# Coleta dos IDs e estatísticas do Sofascore (opcional):
+# O arquivo data/manual/ids_sofascore.csv já possui os 35 jogadores válidos mapeados.
+python -m src.coleta.sofascore coletar
+
+# 6. pipeline completo
 python run_pipeline.py
 ```
 
@@ -167,9 +173,10 @@ python -m pytest
 **Escopo mínimo**
 
 - [ ] Esquema SQL e `db.py`
-- [ ] `jogadores_validos.csv` (até 15 por academia)
-- [ ] Coleta: Transfermarkt e FBref
-- [ ] Por 90, percentis e índices
+- [x] `jogadores_validos.csv` (até 15 por academia — 35 jogadores selecionados)
+- [x] Coleta: Transfermarkt e Sofascore (80.894 linhas de estatísticas por temporada)
+- [x] Padronização por 90 minutos (`por90_appearances.csv` e `por90_sofascore.csv`)
+- [ ] Percentis e índices (configuração em `metricas.yaml`)
 - [ ] Descritiva por academia
 - [ ] Kruskal-Wallis com tamanho de efeito
 - [ ] Mann-Whitney entre pares
@@ -178,7 +185,8 @@ python -m pytest
 
 **Fora do escopo mínimo (trabalhos futuros)**
 
-- [ ] Coleta do Sofascore, UEFA Youth League e BDFutbol
+- [x] Coleta do Sofascore (concluída)
+- [ ] Coleta UEFA Youth League e BDFutbol
 - [ ] Correlação (Spearman) entre trajetória na base e carreira
 - [ ] Dashboard interativo
 - [ ] Inclusão de outras academias (por exemplo Ajax), adicionando o clube em `config/settings.py`

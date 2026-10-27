@@ -1,3 +1,6 @@
+# Esse script foi executado para passar o CSV de jogadores validos escritos por script e ajustados manualmente 
+# na pasta manual para filtrar os que são dá base de seus respectivos clubes da analise
+
 """
 Seleção de jogadores formados nas 4 academias a partir do dataset do Kaggle
 (Transfermarkt: davidcariboo/player-scores).
