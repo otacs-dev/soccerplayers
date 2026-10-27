@@ -1,44 +1,84 @@
-"""Base qualitativa dos métodos de academias.
-
-Este módulo organiza a descrição dos métodos de formação de cada academia,
-conforme a metodologia do README: abordagem qualitativa, com fonte em cada linha.
-"""
+"""Base qualitativa com afirmações limitadas ao que as fontes consultadas sustentam."""
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
+
+from config import settings
 
 
 def base_metodos_academias() -> pd.DataFrame:
-    """Retorna uma tabela de métodos de formação por academia."""
+    """Retorna evidências institucionais; não presume um estilo tático sem fonte."""
     dados = [
         {
             "academia": "Barcelona",
-            "metodo": "La Masia — modelo de desenvolvimento integrado com foco em técnica, leitura de jogo e posse, com transição gradual da base ao profissional.",
-            "fonte": "README do projeto; contexto bibliográfico do estudo e descrição qualitativa das academias.",
+            "aspecto_documentado": (
+                "A descrição oficial apresenta acompanhamento multidisciplinar do atleta, "
+                "incluindo dimensões esportiva, pessoal e educacional."
+            ),
+            "tipo_evidencia": "Descrição institucional da própria academia",
+            "fonte": "FC Barcelona — All about La Masia",
+            "url_fonte": "https://www.fcbarcelona.com/en/news/783458/all-about-la-masia",
+            "limite": (
+                "Fonte institucional, não avaliação independente; não permite comparar "
+                "resultados nem afirmar que esse modelo causou desempenho."
+            ),
         },
         {
             "academia": "Real Madrid",
-            "metodo": "La Fábrica — sistema orientado a alto nível técnico, competitividade e exigência por performance em diferentes faixas etárias.",
-            "fonte": "README do projeto; contexto bibliográfico do estudo e descrição qualitativa das academias.",
+            "aspecto_documentado": (
+                "O portal oficial identifica a academia de futebol masculino e divulga "
+                "equipes de formação e suas competições."
+            ),
+            "tipo_evidencia": "Portal oficial da academia",
+            "fonte": "Real Madrid — Men's Youth Academy",
+            "url_fonte": "https://www.realmadrid.com/en-US/football/academy",
+            "limite": (
+                "A página consultada não descreve com detalhe um método de treino; "
+                "não se atribui um estilo técnico ou tático."
+            ),
         },
         {
             "academia": "Manchester City",
-            "metodo": "City Football Academy — modelo de formação com foco em jogo posicional, intensidade, controle de fases e padronização tática.",
-            "fonte": "README do projeto; contexto bibliográfico do estudo e descrição qualitativa das academias.",
+            "aspecto_documentado": (
+                "A página institucional consultada não forneceu evidência suficiente "
+                "para descrever práticas específicas de formação."
+            ),
+            "tipo_evidencia": "Página institucional consultada; evidência insuficiente",
+            "fonte": "Manchester City — site oficial do clube",
+            "url_fonte": "https://www.mancity.com/club",
+            "limite": (
+                "Não se infere foco em posse, intensidade ou qualquer estilo de jogo "
+                "a partir da identidade do time profissional."
+            ),
         },
         {
             "academia": "Liverpool",
-            "metodo": "The Academy — abordagem baseada em dinâmica de alto pressionamento, transição rápida e desenvolvimento de jogadores versáteis.",
-            "fonte": "README do projeto; contexto bibliográfico do estudo e descrição qualitativa das academias.",
+            "aspecto_documentado": (
+                "O endereço institucional da equipe de formação não expôs conteúdo "
+                "suficiente para caracterizar práticas específicas."
+            ),
+            "tipo_evidencia": "Página institucional consultada; evidência insuficiente",
+            "fonte": "Liverpool FC — Academy",
+            "url_fonte": "https://www.liverpoolfc.com/teams/academy",
+            "limite": (
+                "Não se infere foco em pressão ou transição a partir da identidade "
+                "do time profissional."
+            ),
         },
     ]
-    return pd.DataFrame(dados)
+    return pd.DataFrame(dados).assign(data_consulta="2026-10-27")
 
 
-def salvar_metodos_academias(caminho: str = "data/manual/metodos_academias.csv") -> pd.DataFrame:
-    """Salva a base qualitativa em CSV para uso no relatório."""
+def salvar_metodos_academias(
+    caminho: str | Path = settings.DIR_MANUAL / "metodos_academias.csv",
+) -> pd.DataFrame:
+    """Salva a base qualitativa em CSV, criando o diretório se necessário."""
     df = base_metodos_academias()
+    caminho = Path(caminho)
+    caminho.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(caminho, index=False, encoding="utf-8-sig")
     return df
 

@@ -42,7 +42,7 @@ function MethodologyPage({ onBack }: { onBack: () => void }) {
     <section className="method-section">
       <div className="method-section-heading"><span>01 — DESENHO DA ANÁLISE</span><h2>Da seleção ao teste estatístico</h2><p>As regras definem quem entra na amostra e como as métricas são comparadas.</p></div>
       <div className="method-steps">
-        <article><span className="step-number">01</span><h3>Quem foi incluído</h3><p>Jogadores formados por Barcelona, Real Madrid, Manchester City ou Liverpool, com estreia profissional pelo clube formador a partir de 2020 e pelo menos 900 minutos. Foram selecionados até 15 por academia, priorizando minutos.</p></article>
+        <article><span className="step-number">01</span><h3>Quem foi incluído</h3><p>Jogadores formados por Barcelona, Real Madrid, Manchester City ou Liverpool, com estreia profissional pelo clube formador a partir de 2016 e pelo menos 900 minutos. Foram selecionados até 15 por academia, priorizando minutos.</p></article>
         <article><span className="step-number">02</span><h3>Métricas comparáveis</h3><p>Estatísticas de eventos são padronizadas por 90 minutos. Os valores são convertidos em percentis dentro da categoria posicional, com grupo mais amplo quando há poucos casos.</p></article>
         <article><span className="step-number">03</span><h3>Dois índices, 0 a 100</h3><p>Cada índice é a média ponderada dos percentis das métricas previamente definidas. O técnico reúne passe, criação, drible e participação ofensiva.</p></article>
         <article><span className="step-number">04</span><h3>Comparação não paramétrica</h3><p>Kruskal–Wallis compara as quatro academias. Mann–Whitney compara os pares com correção de Bonferroni. O nível de significância adotado é 0,05.</p></article>
@@ -151,12 +151,12 @@ const projectSections = [
       ['src/coleta/', 'Módulos de coleta e preparação de jogadores, estatísticas e dados complementares.'],
       ['src/coleta/transfermarkt.py', 'Lê os CSVs do Kaggle e monta candidatos à amostra de jogadores formados.'],
       ['src/coleta/sofascore.py', 'Localiza IDs e coleta estatísticas sazonais, mantendo cópias em cache.'],
-      ['src/coleta/uefa_youth.py e bdfutbol.py', 'Módulos de apoio para informações de competições e trajetórias de base.'],
+      ['src/coleta/uefa_youth.py e bdfutbol.py', 'Validam e normalizam CSVs locais previamente obtidos; não fazem scraping.'],
       ['src/tratamento/', 'Integra bases, trata valores ausentes, padroniza por 90 minutos e calcula percentis.'],
-      ['src/tratamento/integracao.py e limpeza.py', 'Unificam fontes pela chave do jogador e aplicam regras de qualidade.'],
+      ['src/tratamento/integracao.py e limpeza.py', 'Juntam fontes por ID validado e verificam a qualidade sem descartar observações.'],
       ['src/tratamento/por90.py e percentis.py', 'Padronizam as taxas de jogo e posicionam os valores dentro dos grupos.'],
       ['src/features/', 'Constrói índices e características da trajetória dos jogadores.'],
-      ['src/features/indices.py, carreira.py e trajetoria.py', 'Calculam os índices e descrevem a carreira e o percurso de formação.'],
+      ['src/features/indices.py, carreira.py e trajetoria.py', 'Calculam índices e resumem aparições profissionais e temporadas de formação observadas.'],
       ['src/db.py e sql/01_schema.sql', 'Conectam ao banco e definem as tabelas relacionais do projeto.'],
       ['sql/02_indices.sql e 03_views.sql', 'Consultam índices e organizam visões prontas para análise.'],
       ['sql/04_qualidade_dados.sql', 'Reúne verificações de consistência dos registros no banco.'],
@@ -167,7 +167,7 @@ const projectSections = [
     id: 'analise', icon: FileBarChart, title: 'Análise e resultados', subtitle: 'Como a pergunta de pesquisa vira evidência.', color: 'violet',
     items: [
       ['src/analise/', 'Estatística descritiva, correlação, testes entre academias e tamanho de efeito.'],
-      ['src/analise/descritiva.py e correlacao.py', 'Resumem os grupos e investigam relações entre variáveis.'],
+      ['src/analise/descritiva.py e correlacao.py', 'Resumem os grupos e calculam Spearman exploratório entre trajetória e carreira, quando há dados.'],
       ['src/analise/testes.py e efeito.py', 'Executam testes não paramétricos e calculam o tamanho das diferenças.'],
       ['src/qualitativo/metodos_academias.py', 'Organiza a comparação descritiva dos métodos de formação.'],
       ['src/visual/', 'Gráficos e dashboard para explorar os perfis e comparar os grupos.'],
@@ -202,7 +202,7 @@ function ProjectPage({ onBack }: { onBack: () => void }) {
   const [activeStep, setActiveStep] = useState(0)
   const steps = [
     { number: '01', title: 'Selecionar', description: '35 jogadores validados em quatro academias.', section: 'dados', files: [['data/manual/jogadores_validos.csv', 'A lista revisada de atletas que atende aos critérios do estudo.'], ['src/coleta/transfermarkt.py', 'Gera os candidatos iniciais a partir de jogadores, aparições e transferências.'], ['config/settings.py', 'Registra os clubes e os critérios de estreia e minutos usados na seleção.']] },
-    { number: '02', title: 'Integrar', description: 'Conectar fontes por identificador do jogador.', section: 'pipeline', files: [['data/manual/ids_sofascore.csv', 'Relaciona os IDs do projeto aos IDs encontrados no Sofascore.'], ['src/tratamento/integracao.py', 'Combina as bases usando o identificador do jogador, não apenas o nome.'], ['data/raw/players.csv e transfers.csv', 'Complementam a seleção com perfil e histórico de transferências.']] },
+    { number: '02', title: 'Integrar', description: 'Conectar fontes por identificador do jogador.', section: 'pipeline', files: [['data/manual/ids_sofascore.csv', 'Relaciona os IDs do projeto aos IDs encontrados no Sofascore.'], ['src/tratamento/integracao.py', 'Combina as bases usando o identificador do jogador e valida a cardinalidade.'], ['data/raw/players.csv e transfers.csv', 'Complementam a seleção com perfil e histórico de transferências.']] },
     { number: '03', title: 'Padronizar', description: 'Comparar métricas por 90 minutos e posição.', section: 'pipeline', files: [['src/tratamento/por90.py', 'Coloca estatísticas de jogo na escala comum por 90 minutos.'], ['src/tratamento/percentis.py', 'Calcula percentis comparáveis dentro das categorias posicionais.'], ['config/metricas.yaml e posicoes.yaml', 'Definem métricas dos índices e agrupamentos de posição.']] },
     { number: '04', title: 'Analisar', description: 'Índices, estatística descritiva e testes.', section: 'analise', files: [['src/features/indices.py', 'Monta os índices técnico e explosivo a partir dos percentis.'], ['src/analise/descritiva.py e testes.py', 'Resume os grupos e testa diferenças entre academias.'], ['data/processed/kruskal_wallis.csv', 'Guarda o resultado do teste global para os dois índices.']] },
     { number: '05', title: 'Comunicar', description: 'Dashboard, gráficos e documentação.', section: 'qualidade', files: [['frontend/src/App.tsx e App.css', 'Apresentam o dashboard e as páginas interativas do projeto.'], ['reports/graficos/', 'Reúne gráficos exportados para explorar e apresentar os resultados.'], ['README.md e notebooks/', 'Documentam a execução e comunicam o processo e os resultados.']] },

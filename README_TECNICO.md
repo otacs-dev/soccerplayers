@@ -4,9 +4,9 @@ Este documento descreve a implementação atual do projeto, o papel das pastas e
 
 ## Estado geral
 
-O fluxo analítico principal está implementado: a partir da seleção validada e das bases disponíveis, `run_pipeline.py` calcula métricas por 90 minutos, percentis, índices, estatísticas descritivas, testes não paramétricos e gráficos PNG. A suíte automatizada passou com 20 testes. O banco SQLite pode ser montado com `python -m src.db`; os dois notebooks estão preenchidos e suas células foram executadas.
+O fluxo analítico principal está implementado: a partir da seleção validada e das bases disponíveis, `run_pipeline.py` calcula métricas por 90 minutos, percentis, índices, estatísticas descritivas, testes não paramétricos e gráficos PNG. O banco SQLite é carregado com `python -m src.db`; os notebooks apresentam a exploração e os resultados.
 
-Isso não significa que cada módulo listado no repositório esteja concluído. Há arquivos vazios reservados para funcionalidades futuras, e existem divergências entre a documentação antiga e as regras executadas pelo código. O quadro **O que falta** registra essas ressalvas.
+Os importadores de trajetória e a análise de Spearman são recursos opcionais: dependem de arquivos locais de temporadas conferidos. O quadro **O que falta** registra as limitações remanescentes.
 
 ## Arquitetura em uma visão
 
@@ -59,11 +59,11 @@ O identificador do jogador do Transfermarkt (`player_id`) é a chave de integra�
 | `metricas.yaml` | Definição prévia dos índices técnico e explosivo, métricas que entram em cada um, fontes e pesos. |
 | `posicoes.yaml` | Mapeia as posições originais para seis categorias funcionais e declara grupos de fallback. |
 
-**Atenção:** `settings.py` define o corte final de estreia em 2016. O README principal ainda descreve estreia a partir de 2020. A regra adotada deve ser confirmada com a orientação e unificada na documentação antes da entrega.
+**Critério vigente:** o corte de estreia profissional pelo clube formador é 2016, conforme `config/settings.py`, `README.md` e a tela de metodologia do frontend. A amostra processada atual tem 35 jogadores, dos quais nove estrearam antes de 2020.
 
 ### `data/`
 
-Contém dados de entrada e artefatos tabulares. Dados originais podem estar sujeitos a termos de uso e não são versionados quando cobertos pelo `.gitignore`.
+Contém dados de entrada e artefatos tabulares. Confira os termos de uso e a proveniência de cada fonte antes de reutilizar ou redistribuir os dados.
 
 #### `data/raw/`
 
@@ -94,6 +94,7 @@ Contém dados de entrada e artefatos tabulares. Dados originais podem estar suje
 | `jogadores_validos.csv` | Seleção final que o pipeline usa. Deve corresponder à revisão manual aprovada. |
 | `percentis_metricas.csv` | Métricas observadas, grupo de comparação posicional, percentil e peso por jogador. |
 | `indices_jogadores.csv` | Índices técnico e explosivo por jogador, cobertura, posição e dados contextuais. |
+| `carreira_jogadores.csv` | Jogos, minutos, gols, assistências, temporadas observadas e idade de estreia por jogador. |
 | `cobertura_metricas.csv` | Quantidade e proporção de jogadores com dado disponível por métrica. |
 | `descritiva_academias.csv` | `n`, ausências, mediana, quartis, mínimo e máximo por academia e índice. |
 | `kruskal_wallis.csv` | Estatística e valor-p dos testes globais dos dois índices. |
@@ -109,23 +110,23 @@ Código Python do projeto, dividido por responsabilidade.
 
 - `transfermarkt.py`: lê `players.csv`, `appearances.csv` e `transfers.csv`; monta candidatos; atualiza a planilha manual sem apagar conferências existentes; gera a seleção final segundo `settings.py`.
 - `sofascore.py`: resolve IDs e coleta estatísticas por temporada, usando cache local e pausas entre requisições. A API usada não é oficial e pode mudar.
-- `uefa_youth.py`: arquivo vazio no estado atual; reservado para uma coleta complementar da UEFA Youth League.
-- `bdfutbol.py`: arquivo vazio no estado atual; reservado para dados complementares do BDFutbol.
+- `bdfutbol.py`: valida e normaliza temporadas de formação em um CSV local previamente obtido; não faz scraping.
+- `uefa_youth.py`: valida e normaliza participações da UEFA Youth League em um CSV local previamente obtido; não faz scraping.
 - `__init__.py`: marca o pacote Python.
 
 #### `src/tratamento/`
 
 - `por90.py`: cria as tabelas intermediárias de aparições e Sofascore, calcula taxas por 90 e marca amostras abaixo do mínimo de minutos.
 - `percentis.py`: converte posições para categorias funcionais e contém utilitários de percentis/categorização.
-- `integracao.py`: arquivo vazio no estado atual; a integração usada pelo fluxo principal está implementada diretamente em `run_pipeline.py` e nos módulos que agregam as fontes.
-- `limpeza.py`: arquivo vazio no estado atual; não é chamado pelo pipeline ativo.
+- `integracao.py`: junta tabelas pelo `player_id` Transfermarkt, com validação explícita da cardinalidade; usado por `run_pipeline.py` e pelas features.
+- `limpeza.py`: normaliza colunas, textos e IDs sem descartar observações; rejeita IDs inválidos ou duplicados. Chamado pelo pipeline.
 - `__init__.py`: marca o pacote Python.
 
 #### `src/features/`
 
 - `indices.py`: funções reutilizáveis para ler a configuração de métricas e agregar percentis em índices. O cálculo principal executado atualmente está na função `construir_indices()` de `run_pipeline.py`.
-- `trajetoria.py`: arquivo vazio; reservado para análise de trajetória na formação.
-- `carreira.py`: arquivo vazio; reservado para características de carreira.
+- `trajetoria.py`: resume temporadas de formação por jogador e academia; conta temporadas observadas e não presume continuidade em lacunas da fonte.
+- `carreira.py`: calcula jogos, minutos, gols, assistências, temporadas com aparições e idade de estreia; chamado pelo pipeline e exportado em `carreira_jogadores.csv`.
 - `__init__.py`: marca o pacote Python.
 
 #### `src/analise/`
@@ -133,12 +134,12 @@ Código Python do projeto, dividido por responsabilidade.
 - `descritiva.py`: resumos por academia, incluindo contagens, medianas, quartis e proporções.
 - `testes.py`: Kruskal–Wallis, Mann–Whitney com Bonferroni e efeitos por diferença de medianas/rank-biserial.
 - `efeito.py`: utilitários de tamanho de efeito usados pela análise.
-- `correlacao.py`: arquivo vazio; a análise de Spearman prevista ainda não está implementada.
+- `correlacao.py`: calcula correlações de Spearman entre features de trajetória e carreira, com tamanho mínimo de amostra e ajuste de Bonferroni. É exploratória e requer dados de trajetória estruturados.
 - `__init__.py`: marca o pacote Python.
 
 #### `src/qualitativo/`
 
-- `metodos_academias.py`: monta e salva uma tabela qualitativa para os métodos das academias. A descrição atual é geral; para a versão final, substituir referências genéricas por fontes verificáveis e específicas por afirmação.
+- `metodos_academias.py`: gera `data/manual/metodos_academias.csv` com fonte institucional, aspecto documentado e limite da evidência. Não atribui estilos táticos quando a fonte não os sustenta. Regere com `python -m src.qualitativo.metodos_academias`.
 - `__init__.py`: marca o pacote Python.
 
 #### `src/visual/`
@@ -157,12 +158,14 @@ Scripts destinados ao SQLite local criado por `src/db.py`.
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `01_schema.sql` | Define tabelas `clube`, `jogador`, `passagem_base`, `estatistica_temporada` e `indice_jogador`, com chaves e verificações de faixa. |
+| `01_schema.sql` | Define `clube`, `jogador`, `passagem_base`, `estatistica_temporada`, `indice_jogador`, `percentil_metrica`, `cobertura_metrica`, `descritiva_academia`, `teste_kruskal_wallis`, `teste_mann_whitney` e `carreira_jogador`, com chaves e verificações de faixa. |
 | `02_indices.sql` | Cria índices para consultas por academia, jogador/temporada, métrica e estreia. |
-| `03_views.sql` | Cria views de jogadores com índices, resumo por academia e estatísticas por temporada. |
+| `03_views.sql` | Cria views de jogadores com índices, resumos por academia, estatísticas sazonais, resultados estatísticos e métricas individuais. |
 | `04_qualidade_dados.sql` | Consultas de auditoria para formações ausentes, duplicidades, faixas inválidas e estatísticas sem vínculo, além de contagens gerais. |
 
 Executar `python -m src.db` aplica os três primeiros scripts e importa os CSVs. `04_qualidade_dados.sql` é uma lista de consultas de verificação para executar no SQLite; as consultas de inconsistência devem retornar zero linhas.
+
+A base atual contém 4 academias, 35 jogadores com índices, 436 percentis, 13 linhas de cobertura, 8 resumos descritivos, 2 testes de Kruskal–Wallis, 12 comparações de Mann–Whitney e 78.445 estatísticas por temporada. A tabela de carreira só recebe linhas quando `carreira_jogadores.csv` está disponível.
 
 ### `notebooks/`
 
@@ -190,6 +193,7 @@ Imagens PNG de alta resolução produzidas ao final do pipeline:
 - `test_estatistica.py`: testa os testes não paramétricos e efeitos.
 - `test_graficos.py`: testa preparação dos dados e construção das figuras.
 - `test_sofascore.py`: testa rotinas de identificação e tratamento do Sofascore.
+- `test_tratamento_trajetoria_carreira.py`: testa limpeza, junções por ID, importação de temporadas, features e correlação de Spearman.
 
 Executar da raiz: `python -m pytest`.
 
@@ -246,13 +250,21 @@ python -m src.coleta.sofascore coletar
 
 Respeite os termos e limites de acesso do Sofascore. A coleta usa uma API não oficial e pode parar de funcionar se o serviço mudar.
 
+### Importar temporadas de formação e analisar trajetória
+
+Os módulos BDFutbol e UEFA Youth League não automatizam acesso a sites. Prepare arquivos locais autorizados e com IDs Transfermarkt já conferidos. Para BDFutbol, o CSV precisa conter `player_id`, `academia` e `temporada`; para UEFA, inclua também `competicao`. Os rótulos de temporada aceitos são `2018/19`, `2018-2019` ou `2018`.
+
+```bash
+python -m src.coleta.bdfutbol caminho/temporadas.csv
+python -m src.coleta.uefa_youth caminho/participacoes.csv
+```
+
+Cada comando grava um CSV normalizado em `data/interim/`. Combine os arquivos, se necessário, e passe a tabela com `player_id`, `academia` e `ano_temporada` para `src.features.trajetoria.resumir_trajetoria()`. Use o resultado e `data/processed/carreira_jogadores.csv` em `src.analise.correlacao.correlacionar_trajetoria_carreira()`. A função ajusta os p-valores por Bonferroni; a análise permanece exploratória e não permite inferência causal.
+
 ## O que falta ou merece revisão antes da entrega
 
-1. **Critério de estreia:** há divergência entre o texto do README principal (2020) e o corte executável em `config/settings.py` (2016). Confirmar a regra final com a orientação, atualizar a documentação e, se necessário, regenerar a seleção e os resultados.
-2. **Módulos vazios:** `src/coleta/bdfutbol.py`, `src/coleta/uefa_youth.py`, `src/tratamento/integracao.py`, `src/tratamento/limpeza.py`, `src/features/trajetoria.py`, `src/features/carreira.py` e `src/analise/correlacao.py` existem, mas estão vazios. Não fazem parte do fluxo executável atual; preenchê-los só se estiverem no escopo exigido.
-3. **Fontes qualitativas:** revisar `data/manual/metodos_academias.csv` para que cada afirmação sobre método de formação tenha uma fonte primária ou bibliográfica identificável.
-4. **README principal:** atualizar o checklist, que ainda marca SQL, percentis, índices, análises e dashboard como pendentes, apesar de esses artefatos já existirem. Confirmar também a contagem de linhas coletadas, que varia conforme o estágio/base.
-5. **Banco:** o SQLite é um produto local regenerável e sua carga é manual, após o pipeline. Confirmar se a banca espera apenas o modelo/documentação ou também os dados carregados e consultas executadas ao vivo.
-6. **Revisão acadêmica:** conferir referências bibliográficas, critérios de inclusão, interpretação do índice explosivo e limitações com a orientação antes de apresentar.
+1. **Dados de trajetória:** os importadores estão implementados, mas dependem de arquivos locais com temporadas e IDs conferidos; a análise de Spearman não deve ser apresentada como resultado enquanto essa entrada não existir.
+2. **Evidência qualitativa:** a tabela registra diferenças de detalhe entre as fontes. Complemente-a se houver fontes primárias adicionais, sem inferir a metodologia de treino a partir do estilo do time profissional.
+3. **Revisão acadêmica:** conferir referências bibliográficas, critérios de inclusão, interpretação do índice explosivo e limitações com a orientação antes de apresentar.
 
-Assim, o núcleo de análise, os notebooks, os gráficos e o carregamento SQLite estão implementados e validados, mas a conclusão acadêmica do trabalho depende de resolver as divergências documentais e confirmar os itens exigidos pela disciplina.
+Assim, o pipeline analítico, os recursos de carreira/trajetória, os notebooks, os gráficos e o carregamento SQLite estão implementados. A análise de trajetória depende de dados externos estruturados e conferidos.
