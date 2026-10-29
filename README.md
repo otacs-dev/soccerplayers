@@ -265,5 +265,5 @@ A bibliografia completa está no relatório do projeto.
 - Arthur Martins
 - Guilherme Onorio
 - Octavio Teodoro
-- Peterson Carara
+- Peterson Carara  
 FATEC Baixada Santista – Rubens Lara, Ciência de Dados, Santos – SP, 2026.
