@@ -1,0 +1,560 @@
+﻿id_tm,nome,date_of_birth,id_sofascore,status
+724520,Abde Ezzalzouli,2001-12-17,1011375,ok
+204103,Adama Traoré,1996-01-25,286165,ok
+34495,Adriano,1984-10-26,,nao_encontrado
+517842,Aihen Muñoz,1997-08-16,966441,ok
+323740,Aitor Cantalapiedra,1996-02-10,823831,ok
+709966,Aleix Garrido,2004-02-22,1142244,ok
+88490,Aleix Vidal,1989-08-21,41218,ok
+636688,Alejandro Balde,2003-10-18,997035,ok
+226074,Alen Halilovic,1996-06-18,277331,ok
+27394,Alex Song,1987-09-09,12987,ok
+40433,Alexis Sánchez,1988-12-19,34120,ok
+616369,Ander Barrenetxea,2001-12-27,966862,ok
+196948,Andreas Christensen,1996-04-10,186795,ok
+221025,André Gomes,1993-07-30,235460,ok
+962111,Andrés Cuenca,2007-06-11,1503832,ok
+7600,Andrés Iniesta,1984-05-11,3595,ok
+466810,Ansu Fati,2002-10-31,962883,ok
+125781,Antoine Griezmann,1991-03-21,85859,ok
+21369,Arda Turan,1987-01-30,5702,ok
+362842,Arthur Melo,1996-08-12,,nao_encontrado
+37666,Arturo Vidal,1987-05-22,18342,ok
+214770,Borja López,1994-02-02,284865,ok
+284854,Carles Aleñá,1998-01-05,794937,ok
+66099,Carles Planas,1991-03-04,,nao_encontrado
+7594,Carles Puyol,1978-04-13,3565,ok
+282810,Carles Pérez,1998-02-16,794950,ok
+8806,Cesc Fàbregas,1987-05-04,518,ok
+689637,Chadi Riad,2003-06-17,,nao_encontrado
+40423,Claudio Bravo,1983-04-13,13249,ok
+182904,Clément Lenglet,1995-06-17,580550,ok
+141834,Cristian Tello,1991-08-11,114157,ok
+15951,Dani Alves,1983-05-06,4419,ok
+293385,Dani Olmo,1998-05-07,789071,ok
+834470,Dani Rodríguez,2005-08-09,1214990,ok
+276111,David Costas,1995-03-26,345333,ok
+7980,David Villa,1981-12-03,5121,ok
+165007,Denis Suárez,1994-01-06,138383,ok
+58426,Douglas,1990-08-06,,nao_encontrado
+1071596,Dro Fernández,2008-01-12,,nao_encontrado
+191987,Edgar Ié,1994-05-01,235458,ok
+476344,Emerson Royal,1999-01-14,856123,ok
+466794,Eric García,2001-01-09,876214,ok
+636703,Fermín López,2003-05-11,1153270,ok
+398184,Ferran Torres,2000-02-29,855833,ok
+412669,Francisco Trincão,1999-12-29,830431,ok
+294808,Franck Kessié,1996-12-19,359226,ok
+326330,Frenkie de Jong,1997-05-12,795222,ok
+646740,Gavi,2004-08-05,1103693,ok
+129476,Gerard Deulofeu,1994-03-13,96372,ok
+268670,Gerard Gumbau,1994-12-18,326471,ok
+705395,Gerard Martín,2002-02-26,1094827,ok
+18944,Gerard Piqué,1987-02-02,770,ok
+573775,Hugo Duro,1999-11-10,909119,ok
+191217,Héctor Bellerín,1995-03-19,188365,ok
+937955,Héctor Fort,2006-08-02,1402908,ok
+15760,Ibrahim Afellay,1986-04-02,2525,ok
+617074,Ilaix Moriba,2003-01-19,962890,ok
+32467,Ivan Rakitic,1988-03-10,7635,ok
+283170,Iñaki Peña,1999-03-02,794949,ok
+158863,Iñigo Martínez,1991-05-17,173883,ok
+146227,Jasper Cillessen,1989-04-22,123865,ok
+19981,Javier Mascherano,1984-06-08,11378,ok
+166666,Jean Marie Dongou,1995-04-22,219560,ok
+605184,Jean-Clair Todibo,1999-12-30,945217,ok
+131102,Jeison Murillo,1992-05-27,158599,ok
+561613,Joan García,2001-05-04,930267,ok
+1009765,Jofre Torrents,2007-01-28,1587196,ok
+60445,Jonathan dos Santos,1990-04-26,84835,ok
+69751,Jordi Alba,1989-03-21,35199,ok
+65263,Jordi Masip,1989-01-03,128600,ok
+364603,José Manuel Arnáiz,1995-04-15,824130,ok
+7537,José Manuel Pinto,1975-11-08,5759,ok
+182712,João Cancelo,1994-05-27,138892,ok
+462250,João Félix,1999-11-10,851671,ok
+162039,Juan Cámara,1994-02-13,138395,ok
+411975,Jules Koundé,1998-11-12,827212,ok
+374139,Junior Firpo,1996-08-22,914835,ok
+5404,Jérémy Mathieu,1983-10-29,3179,ok
+16922,Kevin-Prince Boateng,1987-03-06,8713,ok
+466809,Konrad de la Fuente,2001-07-16,954047,ok
+937958,Lamine Yamal,2007-07-13,987650,ok
+28003,Lionel Messi,1987-06-24,12994,ok
+126664,Lucas Digne,1993-07-20,96538,ok
+44352,Luis Suárez,1987-01-24,16943,ok
+72522,Luuk de Jong,1990-08-27,40878,ok
+323704,Malcom,1997-02-26,551772,ok
+99922,Marc Bartra,1991-01-15,99519,ok
+1018920,Marc Bernal,2007-05-26,1526618,ok
+443222,Marc Cardona,1995-07-08,841854,ok
+636695,Marc Casadó,2003-09-14,1000483,ok
+284857,Marc Cucurella,1998-07-22,794939,ok
+938158,Marc Guiu,2006-01-04,1414933,ok
+74857,Marc-André ter Stegen,1992-04-30,88625,ok
+112515,Marcos Alonso,1990-12-28,69408,ok
+258923,Marcus Rashford,1997-10-31,814590,ok
+273236,Marlon,1995-09-07,331853,ok
+95732,Martin Braithwaite,1991-06-05,66471,ok
+68645,Martín Montoya,1991-04-14,99517,ok
+351892,Matheus Fernandes,1998-06-30,840150,ok
+167850,Memphis Depay,1994-02-13,138833,ok
+44162,Miralem Pjanić,1990-04-02,27678,ok
+282727,Monchu,1999-09-13,859774,ok
+364240,Moussa Wagué,1998-10-04,796086,ok
+223725,Munir El Haddadi,1995-09-01,350170,ok
+111819,Neto,1989-07-19,84844,ok
+68290,Neymar,1992-02-05,124712,ok
+466805,Nico González,2002-01-03,954056,ok
+282671,Nili Perdomo,1994-02-18,797049,ok
+231572,Nélson Semedo,1993-11-16,252821,ok
+66100,Oriol Romeu,1991-09-24,,nao_encontrado
+288230,Ousmane Dembélé,1997-05-15,818244,ok
+720038,Pablo Torre,2003-04-03,1082981,ok
+126716,Paco Alcácer,1993-08-30,96366,ok
+126729,Patric,1993-04-17,,nao_encontrado
+962110,Pau Cubarsí,2007-01-22,1402913,ok
+707572,Pau Víctor,2001-11-26,1031567,ok
+57229,Paulinho,1988-07-25,115183,ok
+683840,Pedri,2002-11-25,992587,ok
+65278,Pedro,1987-07-28,,nao_encontrado
+447052,Peru Nolaskoain,1998-10-25,910975,ok
+80444,Philippe Coutinho,1992-06-12,,nao_encontrado
+58864,Pierre-Emerick Aubameyang,1989-06-18,51498,ok
+129473,Rafinha,1993-02-12,96367,ok
+411295,Raphinha,1996-12-14,831005,ok
+331511,Riqui Puig,1999-08-13,901842,ok
+38253,Robert Lewandowski,1988-08-21,41789,ok
+480267,Ronald Araujo,1999-03-07,925097,ok
+792331,Roony Bardghji,2005-11-15,1162107,ok
+126540,Samuel Umtiti,1993-11-14,96547,ok
+199369,Sandro Ramírez,1995-07-09,188407,ok
+741258,Sergi Domínguez,2005-04-01,1153335,ok
+85370,Sergi Roberto,1992-02-07,123976,ok
+181112,Sergi Samper,1995-01-20,797284,ok
+65230,Sergio Busquets,1988-07-16,39433,ok
+361104,Sergiño Dest,2000-11-03,906021,ok
+60444,Thiago Alcántara,1991-04-11,53825,ok
+15904,Thomas Vermaelen,1985-11-14,1954,ok
+938156,Tommy Marqués,2006-10-30,,nao_encontrado
+1066206,Toni Fernández,2008-07-15,1590761,ok
+282721,Uri Busquets,1999-01-20,817621,ok
+943837,Vitor Roque,2005-02-28,1150391,ok
+7589,Víctor Valdés,1982-01-14,11684,ok
+256120,Wilfrid Kaptoum,1996-07-07,352650,ok
+44058,Wojciech Szczesny,1990-04-18,50490,ok
+7607,Xavi,1980-01-25,3575,ok
+1018912,Xavi Espart,2007-05-21,1546073,ok
+289446,Yerry Mina,1994-09-23,360396,ok
+262389,Àlex Carbonell,1997-09-15,355076,ok
+282722,Álex Collado,1999-04-22,859767,ok
+924610,Álvaro Cortés,2005-03-17,1464652,ok
+466806,Álvaro Sanz,2001-02-14,930266,ok
+646739,Ángel Alarcón,2004-05-15,1153261,ok
+5283,Éric Abidal,1979-09-11,3289,ok
+331505,Óscar Mingueza,1999-05-13,859773,ok
+53622,İlkay Gündoğan,1990-10-24,45853,ok
+43530,Adam Lallana,1988-05-10,17054,ok
+347481,Adam Lewis,1999-11-08,826137,ok
+175737,Adam Morgan,1994-04-21,138544,ok
+71271,Adrián San Miguel,1987-01-03,,nao_encontrado
+207917,Alberto Moreno,1992-07-05,229740,ok
+143424,Alex Oxlade-Chamberlain,1993-08-15,10577,ok
+349066,Alexander Isak,1999-09-21,823941,ok
+534033,Alexis Mac Allister,1998-12-24,895324,ok
+105470,Alisson,1992-10-02,243609,ok
+57515,Aly Cissokho,1987-09-15,42300,ok
+1108049,Amara Nallo,2006-11-18,1550811,ok
+128912,Andre Wisdom,1993-05-09,111961,ok
+234803,Andrew Robertson,1994-03-11,,nao_encontrado
+48066,Andy Carroll,1989-01-06,18998,ok
+719673,Ben Gannon-Doak,2005-11-11,1154861,ok
+344015,Ben Woodburn,1999-10-15,843270,ok
+696324,Billy Koumetio,2002-11-14,1003679,ok
+712117,Bobby Clark,2005-02-07,1142638,ok
+4042,Brad Jones,1982-03-19,819,ok
+175745,Brad Smith,1994-04-09,149814,ok
+796298,Calum Scanlon,2005-02-14,1188167,ok
+633652,Calvin Ramsay,2003-07-31,991227,ok
+261357,Cameron Brannagan,1996-05-09,372522,ok
+340918,Caoimhín Kelleher,1998-11-23,827362,ok
+28990,Charlie Adam,1985-12-10,9360,ok
+50201,Christian Benteke,1990-12-03,45970,ok
+434675,Cody Gakpo,1999-05-07,862967,ok
+262545,Connor Randall,1995-10-21,787580,ok
+624258,Conor Bradley,2003-07-09,1008402,ok
+128901,Conor Coady,1993-02-25,98449,ok
+433188,Curtis Jones,2001-01-30,927353,ok
+28285,Dani Pacheco,1991-01-05,99524,ok
+22832,Daniel Agger,1984-12-12,8510,ok
+47082,Daniel Sturridge,1989-09-01,20963,ok
+134294,Danny Ings,1992-07-23,130181,ok
+203026,Danny Ward,1993-06-22,197428,ok
+546543,Darwin Núñez,1999-06-24,924871,ok
+37838,Dejan Lovren,1989-07-05,39480,ok
+340950,Diogo Jota,1996-12-04,606164,ok
+148368,Divock Origi,1995-04-18,190399,ok
+258889,Dominic Solanke,1997-09-14,361420,ok
+451276,Dominik Szoboszlai,2000-10-25,869856,ok
+433180,Elijah Dixon-Bonner,2001-01-01,927355,ok
+119296,Emre Can,1994-01-12,138156,ok
+225693,Fabinho,1993-10-23,243585,ok
+96754,Fabio Borini,1991-03-29,89510,ok
+341092,Federico Chiesa,1997-10-25,845386,ok
+598577,Florian Wirtz,2003-05-03,1019322,ok
+226049,Freddie Woodman,1997-03-04,284417,ok
+559263,Fábio Carvalho,2002-08-30,991604,ok
+49499,Georginio Wijnaldum,1990-11-11,22126,ok
+502676,Giorgi Mamardashvili,2000-09-29,930997,ok
+1086619,Giovanni Leoni,2006-12-21,1473137,ok
+3881,Glen Johnson,1984-08-23,1204,ok
+279455,Harry Wilson,1997-03-22,355528,ok
+565822,Harvey Elliott,2003-04-04,955245,ok
+709726,Hugo Ekitiké,2002-06-20,1048422,ok
+72047,Iago Aspas,1987-08-01,19356,ok
+357119,Ibrahima Konaté,1999-05-25,826215,ok
+670843,Isaac Mabaya,2004-09-22,1148511,ok
+128909,Jack Robinson,1993-09-01,98454,ok
+565420,Jake Cain,2001-09-02,954041,ok
+845289,James McConnell,2004-09-13,1138428,ok
+3333,James Milner,1986-01-04,791,ok
+3597,Jamie Carragher,1978-01-28,723,ok
+632349,Jarell Quansah,2003-01-29,1003339,ok
+162029,Javier Manquillo,1994-05-05,210082,ok
+52111,Jay Spearing,1988-11-25,26940,ok
+939290,Jayden Danns,2006-01-16,1403108,ok
+484547,Jeremie Frimpong,2000-12-10,970361,ok
+236513,Jerome Sinclair,1996-09-20,284455,ok
+51452,Joe Allen,1990-03-14,20602,ok
+3876,Joe Cole,1981-11-08,1208,ok
+256178,Joe Gomez,1997-05-23,318927,ok
+382555,Joe Hardy,1998-09-26,1014103,ok
+263556,Joe Maguire,1996-01-18,,nao_encontrado
+82105,Joel Matip,1991-08-08,51501,ok
+145922,Jon Flanagan,1993-01-01,143024,ok
+71292,Jonjo Shelvey,1992-02-27,36465,ok
+61651,Jordan Henderson,1990-06-17,42694,ok
+258924,Jordan Rossiter,1997-03-24,361328,ok
+195652,Jordon Ibe,1995-12-08,185955,ok
+35571,José Enrique,1986-01-23,30265,ok
+132214,João Carlos Teixeira,1993-01-18,97006,ok
+732119,Kaide Gordon,2004-10-05,1096447,ok
+200782,Kevin Stewart,1993-09-07,180011,ok
+485583,Ki-Jana Hoever,2002-01-18,954044,ok
+1055345,Kieran Morrison,2006-11-09,1462781,ok
+3202,Kolo Touré,1981-03-19,534,ok
+338070,Konstantinos Tsimikas,1996-05-12,,nao_encontrado
+144303,Lazar Markovic,1994-03-02,98461,ok
+470606,Leighton Clarkson,2001-10-19,954043,ok
+922462,Lewis Koumas,2005-09-19,1403111,ok
+487417,Liam Millar,1999-09-27,902083,ok
+85864,Loris Karius,1993-06-22,174135,ok
+41414,Lucas Leiva,1987-01-09,27234,ok
+128220,Luis Alberto,1992-09-28,111416,ok
+480692,Luis Díaz,1997-01-13,883537,ok
+670861,Luke Chambers,2004-06-24,1134530,ok
+47713,Mamadou Sakho,1990-02-13,21134,ok
+45146,Mario Balotelli,1990-08-12,25530,ok
+222813,Marko Grujić,1996-04-13,280835,ok
+78959,Martin Kelly,1990-04-27,39472,ok
+24180,Martin Skrtel,1984-12-15,12394,ok
+570469,Mateusz Musialowski,2003-10-16,1134528,ok
+730861,Milos Kerkez,2003-11-07,1097425,ok
+148455,Mohamed Salah,1992-06-15,159665,ok
+554250,Morgan Boyes,2001-04-22,927357,ok
+302215,Naby Keïta,1995-02-10,365772,ok
+85177,Nathaniel Clyne,1991-04-05,43215,ok
+371814,Nathaniel Phillips,1997-03-21,920393,ok
+503680,Neco Williams,2001-04-13,927356,ok
+31095,Nuri Sahin,1988-09-05,21881,ok
+57275,Oussama Assaidi,1988-08-15,,nao_encontrado
+337284,Ovie Ejaria,1997-11-18,845025,ok
+551001,Owen Beck,2002-08-09,979114,ok
+361260,Ozan Kabak,2000-03-25,857740,ok
+242273,Pedro Chirivella,1997-05-23,799216,ok
+7825,Pepe Reina,1982-08-31,26937,ok
+400831,Rafael Camacho,2000-05-22,902086,ok
+26669,Ragnar Klavan,1985-10-30,10122,ok
+134425,Raheem Sterling,1994-12-08,138534,ok
+406560,Rhian Brewster,2000-04-01,878705,ok
+503679,Rhys Williams,2001-02-03,887739,ok
+49655,Rickie Lambert,1982-02-16,19659,ok
+1108466,Rio Ngumoha,2008-08-29,1881902,ok
+131789,Roberto Firmino,1991-10-02,143697,ok
+478573,Ryan Gravenberch,2002-05-16,904897,ok
+279457,Ryan Kent,1996-11-11,604838,ok
+200512,Sadio Mané,1992-04-10,217704,ok
+346707,Sean Longstaff,1997-10-30,866191,ok
+102427,Sebastián Coates,1990-10-07,47443,ok
+541231,Sepp van den Berg,2001-12-20,924378,ok
+251845,Sergi Canós,1997-02-02,790833,ok
+236510,Sheyi Ojo,1997-06-19,284449,ok
+50219,Simon Mignolet,1988-03-06,10406,ok
+864799,Stefan Bajcetic,2004-10-22,1142636,ok
+121280,Steven Caulker,1991-12-29,73685,ok
+3109,Steven Gerrard,1980-05-30,701,ok
+4063,Stewart Downing,1984-07-22,816,ok
+111961,Suso,1993-11-19,96370,ok
+165793,Takumi Minamino,1995-01-16,155818,ok
+177859,Tiago Ilori,1993-02-26,167655,ok
+314353,Trent Alexander-Arnold,1998-10-07,795064,ok
+944140,Trent Koné-Doherty,2006-06-30,1149857,ok
+1045123,Trey Nyoni,2007-06-30,1445945,ok
+618494,Tyler Morton,2002-10-31,979118,ok
+59866,Victor Moses,1990-12-12,,nao_encontrado
+139208,Virgil van Dijk,1991-07-08,151545,ok
+486604,Vitezslav Jaros,2001-07-23,927359,ok
+146310,Wataru Endo,1993-02-09,143040,ok
+922461,Wellity Lucky,2006-01-12,1403123,ok
+86792,Xherdan Shaqiri,1991-10-10,65953,ok
+554251,Yasser Larouci,2001-01-01,927360,ok
+55247,Ádám Bogdán,1987-09-27,39316,ok
+763079,Abdukodir Khusanov,2004-02-29,1194333,ok
+177321,Abdul Razak,1992-11-11,146841,ok
+261504,Aleix García,1997-06-28,796047,ok
+46156,Aleksandar Kolarov,1985-11-10,26097,ok
+277179,Angeliño,1997-01-04,848355,ok
+583255,Antoine Semenyo,2000-01-07,934354,ok
+176553,Aymeric Laporte,1994-05-27,149734,ok
+26764,Bacary Sagna,1983-02-14,1053,ok
+468002,Ben Johnson,2000-01-24,914412,ok
+157495,Benjamin Mendy,1994-07-17,139225,ok
+241641,Bernardo Silva,1994-08-10,331209,ok
+229695,Bersant Celina,1996-09-09,281013,ok
+314678,Brahim Díaz,1999-08-03,835485,ok
+214927,Brandon Barker,1996-10-04,352678,ok
+115507,Bruno Zuculini,1993-04-02,249409,ok
+277723,Cameron Humphreys,1998-08-22,803180,ok
+4276,Carlos Tevez,1984-02-05,11384,ok
+1033103,Charlie Gray,2006-02-22,1402918,ok
+994536,Claudio Echeverri,2006-01-02,1482424,ok
+395239,Claudio Gomes,2000-07-23,864731,ok
+568177,Cole Palmer,2002-05-06,982780,ok
+47659,Costel Pantilimon,1987-02-01,42256,ok
+145707,Danilo,1991-07-15,,nao_encontrado
+272624,David Faupala,1997-02-11,832102,ok
+35518,David Silva,1986-01-08,11781,ok
+88262,Dedryck Boyata,1990-11-28,103928,ok
+670848,Divin Mubama,2004-10-25,1167025,ok
+1047280,Divine Mukasa,2007-08-22,1467990,ok
+238223,Ederson,1993-08-17,254491,ok
+28396,Edin Dzeko,1986-03-17,14990,ok
+90681,Eliaquim Mangala,1991-02-13,42892,ok
+121474,Emyr Huws,1993-09-30,94751,ok
+418560,Erling Haaland,2000-07-21,839956,ok
+50362,Fabian Delph,1989-11-21,24048,ok
+406640,Felix Nmecha,2000-10-10,907463,ok
+26267,Fernandinho,1985-05-04,13630,ok
+51174,Fernando,1987-07-25,,nao_encontrado
+3163,Frank Lampard,1978-06-20,1216,ok
+363205,Gabriel Jesus,1997-04-03,794839,ok
+3291,Gareth Barry,1981-02-23,544,ok
+7449,Gaël Clichy,1985-07-26,532,ok
+315858,Gianluigi Donnarumma,1999-02-25,824509,ok
+203460,Jack Grealish,1995-09-10,189061,ok
+57079,Jack Rodwell,1991-03-11,32002,ok
+983702,Jacob Wright,2005-09-21,1402922,ok
+961833,Jaden Heskey,2005-12-17,1402923,ok
+942497,Jahmai Simpson-Pusey,2005-11-04,1402924,ok
+583199,James McAtee,2002-10-18,1003334,ok
+566799,James Trafford,2002-10-10,980643,ok
+36350,Javi García,1987-02-08,13989,ok
+15956,Jesús Navas,1985-11-21,11869,ok
+40204,Joe Hart,1987-04-19,16817,ok
+186590,John Stones,1994-05-28,152077,ok
+4241,Joleon Lescott,1982-08-16,10607,ok
+576121,Josh Wilson-Esbrand,2002-12-26,1017915,ok
+475959,Josko Gvardiol,2002-01-23,964994,ok
+195605,José Pozo,1996-03-15,608370,ok
+576024,Julián Alvarez,2000-01-31,944656,ok
+486049,Jérémy Doku,2002-05-27,934386,ok
+351749,Kalvin Phillips,1995-12-02,786028,ok
+182579,Karim Rekik,1994-12-02,138827,ok
+295330,Kelechi Iheanacho,1996-10-03,359642,ok
+88755,Kevin De Bruyne,1991-06-28,70996,ok
+95424,Kyle Walker,1990-05-28,44614,ok
+192565,Leroy Sané,1996-01-11,293519,ok
+610849,Liam Delap,2003-02-08,997087,ok
+314288,Lukas Nmecha,1998-12-14,803185,ok
+895074,Mahamadou Susoho,2005-01-20,1156644,ok
+18301,Maicon,1981-07-26,17744,ok
+277118,Manu García,1998-01-02,792317,ok
+284730,Manuel Akanji,1995-07-19,383560,ok
+392757,Marc Guéhi,2000-07-13,877994,ok
+2963,Martín Demichelis,1980-12-20,301,ok
+51471,Mateo Kovacic,1994-05-06,136710,ok
+601883,Matheus Nunes,1998-08-27,945122,ok
+143559,Matija Nastasić,1993-03-28,98440,ok
+843595,Max Alleyne,2005-07-21,1168513,ok
+652797,Micah Hamilton,2003-11-13,1082714,ok
+32617,Micah Richards,1988-06-24,9680,ok
+668547,Máximo Perrone,2003-01-07,1086286,ok
+177476,Nathan Aké,1995-02-18,149663,ok
+743413,Nico O'Reilly,2005-03-21,1142703,ok
+54781,Nicolás Otamendi,1988-02-12,74915,ok
+4672,Nigel de Jong,1984-11-30,1879,ok
+70934,Nolito,1986-10-15,123977,ok
+203853,Oleksandr Zinchenko,1996-12-15,287643,ok
+445939,Omar Marmoush,1999-02-07,873554,ok
+661207,Oscar Bobb,2003-07-12,1065216,ok
+251876,Pablo Maffeo,1997-07-12,788216,ok
+20007,Pablo Zabaleta,1985-01-16,11796,ok
+225452,Patrick Roberts,1997-02-05,361326,ok
+406635,Phil Foden,2000-05-28,859765,ok
+340460,Philippe Sandler,1997-02-10,842275,ok
+578391,Rayan Aït-Nouri,2001-06-06,931278,ok
+607223,Rayan Cherki,2003-08-17,979128,ok
+1056437,Reigan Heskey,2008-01-19,,nao_encontrado
+701057,Rico Lewis,2004-11-21,1136731,ok
+171424,Riyad Mahrez,1991-02-21,158213,ok
+357565,Rodri,1996-06-22,827606,ok
+174694,Rony Lopes,1995-12-28,190147,ok
+1187640,Ryan McAidoo,2008-06-24,1826151,ok
+258004,Rúben Dias,1997-05-14,318941,ok
+18935,Samir Nasri,1987-06-26,3544,ok
+743591,Savinho,2004-04-10,,nao_encontrado
+14555,Scott Carson,1985-09-03,716,ok
+31552,Scott Sinclair,1989-03-25,24055,ok
+26399,Sergio Agüero,1988-06-02,17094,ok
+366930,Sergio Gómez,2000-09-04,855835,ok
+747951,Shea Charles,2003-11-05,1131449,ok
+85941,Stefan Ortega,1992-11-06,125274,ok
+107010,Stefan Savic,1991-01-08,76265,ok
+1049020,Stephen Mfuni,2008-02-12,1402791,ok
+46104,Stevan Jovetić,1989-11-02,37126,ok
+503977,Taylor Harwood-Bellis,2002-01-30,,nao_encontrado
+460939,Tijjani Reijnders,1998-07-29,893549,ok
+433183,Tommy Doyle,2001-10-17,932628,ok
+258878,Tosin Adarabioyo,1997-09-24,352668,ok
+9594,Vincent Kompany,1986-04-10,6019,ok
+1005575,Vitor Reis,2006-01-12,1485300,ok
+81808,Wilfried Bony,1988-12-10,39543,ok
+19948,Willy Caballero,1981-09-28,52741,ok
+13091,Yaya Touré,1983-05-13,14468,ok
+221624,Zack Steffen,1995-04-02,332995,ok
+18644,Álvaro Negredo,1985-08-20,27838,ok
+398073,Achraf Hakimi,1998-11-04,814594,ok
+120629,Alphonse Areola,1993-02-27,96531,ok
+404839,Andriy Lunin,1999-02-11,857574,ok
+44062,Antonio Adán,1987-05-13,59623,ok
+495621,Antonio Blanco,2000-07-23,855832,ok
+86202,Antonio Rüdiger,1993-03-03,142622,ok
+861410,Arda Güler,2005-02-25,1091116,ok
+59344,Asier Illarramendi,1990-03-08,,nao_encontrado
+413112,Aurélien Tchouaméni,2000-01-27,859025,ok
+298976,Borja Mayoral,1997-04-05,604954,ok
+16306,Casemiro,1992-02-23,122951,ok
+948279,Chema Andrés,2005-04-25,1464641,ok
+50935,Chicharito,1988-06-01,,nao_encontrado
+8198,Cristiano Ronaldo,1985-02-05,750,ok
+339707,Cristo,1997-10-24,592100,ok
+948272,César Palacios,2004-11-11,1402688,ok
+319745,Dani Ceballos,1996-08-07,547838,ok
+138927,Daniel Carvajal,1992-01-11,,nao_encontrado
+948259,Daniel Mesonero,2005-09-03,2451959,ok
+962124,Daniel Yáñez,2007-03-28,1546404,ok
+59016,David Alaba,1992-06-24,66492,ok
+935281,David Jiménez,2004-03-14,1142689,ok
+890290,Dean Huijsen,2005-04-14,1176744,ok
+98322,Denis Cheryshev,1990-12-26,167855,ok
+1208520,Diego Aguado,2007-02-07,1614687,ok
+246291,Diego Llorente,1993-08-16,305278,ok
+34370,Diego López,1981-11-03,4697,ok
+50202,Eden Hazard,1991-01-07,27583,ok
+640428,Eduardo Camavinga,2002-11-10,973887,ok
+971570,Endrick,2006-07-21,1174937,ok
+106825,Enzo Zidane,1995-03-24,788099,ok
+369081,Federico Valverde,1998-07-22,831808,ok
+291417,Ferland Mendy,1995-06-08,792073,ok
+172015,Fernando Pacheco,1992-05-18,144501,ok
+341264,Fran García,1999-08-14,851271,ok
+1055220,Fran González,2005-06-24,1493226,ok
+458466,Franchu,1998-05-12,851266,ok
+1057316,Franco Mastantuono,2007-08-14,1403559,ok
+33648,Fábio Coentrão,1988-03-11,25994,ok
+39381,Gareth Bale,1989-07-16,15354,ok
+935230,Gonzalo García,2004-03-24,1402716,ok
+39153,Gonzalo Higuaín,1987-12-10,19438,ok
+3979,Iker Casillas,1981-05-20,4694,ok
+85288,Isco,1992-04-21,103417,ok
+948278,Jacobo Ramón,2005-01-06,1403348,ok
+340867,Jaime Seoane,1997-01-22,838636,ok
+88103,James Rodríguez,1991-07-12,107414,ok
+282421,Javi Muñoz,1995-02-28,353154,ok
+340853,Javi Sánchez,1997-03-14,943713,ok
+134936,Jesé,1993-02-26,110781,ok
+91885,Jesús Fernández,1988-06-11,47827,ok
+251896,Jesús Vallejo,1997-01-05,355048,ok
+1186235,Jorge Cestero,2006-03-24,1590121,ok
+81999,Joselu,1990-03-27,69418,ok
+61253,José Callejón,1987-02-11,40965,ok
+165012,José Rodríguez,1994-12-16,138394,ok
+581678,Jude Bellingham,2003-06-29,991011,ok
+3366,Kaká,1982-04-22,1770,ok
+18922,Karim Benzema,1987-12-19,3306,ok
+192279,Kepa Arrizabalaga,1994-10-03,232422,ok
+79422,Keylor Navas,1986-12-15,56113,ok
+27486,Kiko Casilla,1986-10-02,18184,ok
+342229,Kylian Mbappé,1998-12-20,826643,ok
+23914,Lassana Diarra,1985-03-10,9642,ok
+709997,Lorenzo Aguado,2002-09-19,1526535,ok
+283489,Luca Zidane,1998-05-13,802133,ok
+218118,Lucas Silva,1993-02-16,245159,ok
+221316,Lucas Vázquez,1991-07-01,255239,ok
+282428,Luismi Quezada,1996-02-11,888563,ok
+257462,Luka Jović,1997-12-23,319129,ok
+27992,Luka Modrić,1985-09-09,15466,ok
+940464,Manu Serrano,2004-03-20,1145644,ok
+646824,Manuel Ángel,2004-03-15,1142683,ok
+44501,Marcelo,1988-05-12,17787,ok
+296622,Marco Asensio,1996-01-21,361004,ok
+282411,Marcos Llorente,1995-01-30,353138,ok
+225020,Mariano Díaz,1993-08-01,175753,ok
+948273,Mario Martín,2004-03-05,1154549,ok
+316264,Martin Ødegaard,1998-12-17,547410,ok
+603940,Marvin Park,2000-07-03,,nao_encontrado
+35664,Mesut Özil,1988-10-15,16176,ok
+5588,Michael Essien,1982-12-03,3300,ok
+525299,Miguel Gutiérrez,2001-07-27,908716,ok
+58884,Nacho Fernández,1990-01-18,69404,ok
+948294,Nico Paz,2004-09-08,1171451,ok
+142031,Omar Mascarell,1993-02-02,255999,ok
+14132,Pepe,1983-02-26,5884,ok
+225657,Philipp Lienhart,1996-07-11,576266,ok
+164770,Raphaël Varane,1993-04-25,138310,ok
+15452,Raúl Albiol,1985-09-04,3041,ok
+935245,Raúl Asencio,2003-02-13,1156645,ok
+162038,Raúl de Tomás,1994-10-17,138387,ok
+9828,Ricardo Carvalho,1978-05-18,1196,ok
+412363,Rodrygo,2001-01-09,910536,ok
+246335,Rubén Yáñez,1993-10-12,112877,ok
+29401,Sami Khedira,1987-04-04,4726,ok
+537762,Sergio Arribas,2001-09-30,997203,ok
+25557,Sergio Ramos,1986-03-30,10710,ok
+282429,Sergio Reguilón,1996-12-16,858195,ok
+339808,Theo Hernández,1997-10-06,788027,ok
+1375227,Thiago Pitarch,2007-08-03,2237795,ok
+108390,Thibaut Courtois,1992-05-11,70988,ok
+31909,Toni Kroos,1990-01-04,26502,ok
+371998,Vinicius Junior,2000-07-12,868812,ok
+743587,Vinícius Tobias,2004-02-23,1067639,ok
+495625,Víctor Chust,2000-03-05,855831,ok
+935231,Víctor Muñoz,2003-07-13,1145642,ok
+1186245,Víctor Valdepeñas,2006-10-20,1901143,ok
+122155,Willian José,1991-11-23,123223,ok
+7476,Xabi Alonso,1981-11-25,708,ok
+204102,Xavi Quintillà,1996-08-23,286153,ok
+89733,Álex Fernández,1992-10-15,148588,ok
+28260,Álvaro Arbeloa,1983-01-17,14167,ok
+811778,Álvaro Carreras,2003-03-23,1085081,ok
+652330,Álvaro Carrillo,2002-04-06,984620,ok
+261503,Álvaro Fidalgo,1997-04-09,838629,ok
+875306,Álvaro Leiva,2004-12-28,1110138,ok
+253839,Álvaro Medrán,1994-03-15,537018,ok
+128223,Álvaro Morata,1992-10-23,125407,ok
+280730,Álvaro Odriozola,1995-12-14,353250,ok
+948275,Álvaro Rodríguez,2004-07-14,1154587,ok
+290273,Álvaro Tejero,1996-07-20,826679,ok
+45320,Ángel Di María,1988-02-14,30027,ok
+401530,Éder Militão,1998-01-18,822519,ok
+284884,Óscar Rodríguez,1998-06-28,794948,ok

@@ -43,7 +43,7 @@ Os métodos de treino de cada academia entram apenas como **descrição qualitat
 | Item | Regra |
 |---|---|
 | Unidade de análise | Jogador formado por uma das quatro academias |
-| Jogador válido | Formado no clube (critério do CIES), com estreia no profissional do clube formador a partir de 2020 e 900 minutos ou mais no time principal do clube formador |
+| Jogador válido | Formação confirmada manualmente, estreia profissional pelo clube formador a partir de 2016 e pelo menos 900 minutos pelo time principal desse clube |
 | Amostra | Até 15 jogadores por grupo, os de mais minutos |
 | Dados usados | Apenas métricas que compõem os perfis técnico e explosivo |
 | Análise | Mediana e quartis, Kruskal-Wallis, Mann-Whitney com Bonferroni e tamanho de efeito |
@@ -70,7 +70,7 @@ As métricas de cada índice estão em `config/metricas.yaml` e foram **definida
 | FBref | Dados básicos: jogos, minutos, gols, assistências | Perdeu as estatísticas avançadas (xG, passes progressivos); usamos só o básico |
 | Sofascore | Estatísticas por temporada (passes, dribles, duelos) | IDs dos 35 jogadores mapeados em `data/manual/ids_sofascore.csv`. Coleta direta via `curl_cffi` |
 
-Respeite os termos de uso de cada fonte. Os dados brutos **não são versionados** (ver `.gitignore`).
+Respeite os termos de uso de cada fonte e mantenha a identificação da origem dos dados.
 
 -----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -97,8 +97,8 @@ A integração entre fontes usa o **identificador do Transfermarkt como chave**,
 # caminhos, lista de clubes, ano inicial
 # métricas de cada índice
 # categorias posicionais
-# dados brutos (não versionados)
-# dados intermediários (não versionados)
+# dados brutos das fontes
+# dados intermediários do pipeline
 # base padronizada
 # jogadores_validos.csv, metodos_academias.csv
 # tabelas
@@ -168,6 +168,40 @@ python -m src.db
 
 O arquivo `data/processed/formacao_jogadores.sqlite3` é criado ou atualizado a partir dos CSVs de `data/processed/` e `data/interim/`. Para conferir a qualidade no SQLite, execute as consultas de `sql/04_qualidade_dados.sql`; as consultas de inconsistência devem retornar zero linhas.
 
+Na carga atual, o banco contém os **35 jogadores analisados** (Barcelona: 15; Liverpool: 8; Manchester City: 7; Real Madrid: 5), seus índices e 436 percentis, além de cobertura de métricas, estatísticas descritivas, testes estatísticos e 78.445 estatísticas sazonais. Isso representa a amostra analisada, não o elenco completo atual desses clubes. As tabelas analíticas estão definidas em `sql/01_schema.sql`; as views de consulta ficam em `sql/03_views.sql`.
+
+Há também uma base separada para a comparação histórica de profissionais: gere `data/processed/jogadores_profissionais.csv` com `python -m src.analise.jogadores_profissionais` e depois rode `python -m src.db` para carregá-la na tabela `jogador_profissional` e na view `vw_jogadores_profissionais`. Ela reúne 580 vínculos jogador-clube (559 jogadores únicos) observados entre 2012 e 2026 nos arquivos disponíveis; alguns jogadores atuaram por mais de um dos clubes. “Formação confirmada” marca somente os 35 atletas revisados manualmente; os demais estão como “não confirmada”, não como “não formados”.
+
+No momento, os índices técnico/explosivo comparáveis estão disponíveis para os 35 atletas da amostra original. Para ampliar a coleta e recalcular os índices posicionais em toda a coorte histórica, execute os comandos abaixo na raiz do projeto:
+
+```bash
+python -m src.coleta.sofascore ids-profissionais
+# Confira data/manual/ids_sofascore_profissionais.csv e corrija IDs não encontrados.
+python -m src.coleta.sofascore coletar-profissionais
+python -m src.analise.indices_profissionais
+python -m src.db
+```
+
+A coleta usa a API não oficial do Sofascore, pausa entre requisições e mantém cache para poder continuar depois de interrupções. O cálculo usa as métricas configuradas em `config/metricas.yaml`; índices só são exibidos quando pelo menos 50% das métricas do índice estão disponíveis. Jogadores sem cobertura suficiente continuam sem nota. A inclusão desses atletas muda a referência dos percentis e pode alterar também os valores dos 35 jogadores já analisados. O frontend mostra jogos × minutos e índices técnico × explosivo em gráficos separados, com botões de lupa para zoom. Esse recorte histórico não equivale aos elencos atuais.
+
+Exemplo para consultar os jogadores e índices:
+
+```sql
+SELECT player_id, nome, academia, indice_tecnico, indice_explosivo
+FROM vw_jogadores_com_indices
+ORDER BY academia, nome;
+```
+
+Para consultar a base profissional:
+
+```sql
+SELECT nome, clube, position, ano_primeira_aparicao, ano_ultima_aparicao,
+       jogos_profissionais, minutos_profissionais, formacao_status,
+       indice_tecnico, indice_explosivo
+FROM vw_jogadores_profissionais
+ORDER BY clube, nome;
+```
+
 ### Notebooks
 
 Abra `notebooks/01_exploracao.ipynb` para conferir a composição da amostra, índices e cobertura. Use `notebooks/02_resultados.ipynb` para apresentar medianas, quartis, testes e gráficos PNG. Se o kernel ainda não estiver configurado, selecione o ambiente virtual `.venv` do projeto. Os notebooks leem os CSVs produzidos por `python run_pipeline.py`.
@@ -209,26 +243,23 @@ npm run build
 
 ## Status do projeto
 
-**Escopo mínimo**
+**Implementado**
 
-- [ ] Esquema SQL e `db.py`
-- [x] `jogadores_validos.csv` (até 15 por academia — 35 jogadores selecionados)
-- [x] Coleta: Transfermarkt e Sofascore (80.894 linhas de estatísticas por temporada)
-- [x] Padronização por 90 minutos (`por90_appearances.csv` e `por90_sofascore.csv`)
-- [ ] Percentis e índices (configuração em `metricas.yaml`)
-- [ ] Descritiva por academia
-- [ ] Kruskal-Wallis com tamanho de efeito
-- [ ] Mann-Whitney entre pares
-- [x] Gráficos PNG (`reports/graficos/`)
-- [ ] `metodos_academias.csv` (qualitativo, com fonte em cada linha)
+- [x] Seleção de jogadores confirmados manualmente; amostra atual de 35 atletas, até 15 por academia.
+- [x] Coleta/preparação de dados Transfermarkt e Sofascore.
+- [x] Padronização por 90 minutos, percentis posicionais e índices configuráveis.
+- [x] Estatística descritiva, Kruskal–Wallis, Mann–Whitney com Bonferroni e tamanho de efeito.
+- [x] Gráficos PNG, dashboard Streamlit e frontend React.
+- [x] Banco SQLite, scripts de auditoria e notebooks de exploração/resultados.
+- [x] Tabela qualitativa com fonte e limite de evidência por academia.
+- [x] Funções para importar temporadas de formação, resumir carreira/trajetória e calcular correlações exploratórias de Spearman.
 
-**Fora do escopo mínimo (trabalhos futuros)**
+**Entradas opcionais e próximos passos**
 
-- [x] Coleta do Sofascore (concluída)
-- [ ] Coleta UEFA Youth League e BDFutbol
-- [ ] Correlação (Spearman) entre trajetória na base e carreira
-- [ ] Dashboard interativo
-- [ ] Inclusão de outras academias (por exemplo Ajax), adicionando o clube em `config/settings.py`
+- A amostra processada usa estreia profissional a partir de **2016**. Nove dos 35 jogadores estrearam antes de 2020; a amostra não deve ser descrita como se usasse o corte de 2020.
+- Os módulos BDFutbol e UEFA Youth League aceitam CSVs locais previamente obtidos; não fazem coleta automatizada nem substituem a conferência das fontes.
+- A análise de Spearman está implementada, mas só pode ser executada quando houver temporadas de formação estruturadas e vinculadas por `player_id`.
+- Aumentar a amostra e incluir outras academias exige revisar a metodologia, os dados e os parâmetros em `config/settings.py`.
 
 -----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -240,7 +271,7 @@ npm run build
 - **Perfil explosivo aproximado** por indicadores substitutos.
 - **Métricas avançadas indisponíveis** no FBref desde janeiro de 2026.
 - **Valores ausentes:** o texto informa quantos jogadores ficaram de fora de cada métrica e por quê.
-- **Método de treino com n = 4:** tratado apenas de forma descritiva.
+- **Métodos das academias:** as fontes institucionais consultadas não descrevem o mesmo nível de detalhe; a tabela informa limites e evita atribuir estilos táticos sem evidência.
 
 -----------------------------------------------------------------------------------------------------------------------------------------
 

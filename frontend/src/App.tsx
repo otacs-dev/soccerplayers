@@ -1,23 +1,68 @@
 import { useMemo, useState } from 'react'
-import { Activity, ArrowLeft, ArrowDown, ArrowUpRight, BookOpen, ChevronDown, CircleHelp, Code2, Database, Download, ExternalLink, FileBarChart, FileCode2, Filter, GraduationCap, LayoutDashboard, Search, ShieldCheck, Users } from 'lucide-react'
+import { Activity, ArrowLeft, ArrowDown, ArrowUpRight, BookOpen, ChevronDown, CircleHelp, Code2, Database, Download, ExternalLink, FileBarChart, FileCode2, Filter, GraduationCap, LayoutDashboard, RotateCcw, Search, ShieldCheck, Users, ZoomIn, ZoomOut } from 'lucide-react'
 import { CartesianGrid, Cell, ComposedChart, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import Papa from 'papaparse'
 import indicesSource from '../../data/processed/indices_jogadores.csv?raw'
 import descriptiveSource from '../../data/processed/descritiva_academias.csv?raw'
 import kruskalSource from '../../data/processed/kruskal_wallis.csv?raw'
+import professionalsSource from '../../data/processed/jogadores_profissionais.csv?raw'
 import './App.css'
 
 type Player = { clube: string; nome: string; categoria: string; indice_tecnico: number; indice_explosivo: number; minutos: number; url: string }
+type ProfessionalPlayer = {
+  player_id: number
+  clube: string
+  nome: string
+  position: string
+  sub_position: string
+  ano_primeira_aparicao: number
+  ano_ultima_aparicao: number
+  jogos_profissionais: number
+  minutos_profissionais: number
+  formacao_status: 'confirmada' | 'nao_confirmada'
+  indice_tecnico: number | null
+  indice_explosivo: number | null
+  cobertura_tecnico: number | null
+  cobertura_explosivo: number | null
+  n_metricas_tecnico: number | null
+  n_metricas_explosivo: number | null
+  universo_indices: 'amostra_validada' | 'coorte_profissional' | null
+  url: string
+}
 type Summary = { academia: string; metrica: string; n: number; mediana: number; q1: number; q3: number }
 type TestResult = { metrica: string; p_value: number }
 const colors: Record<string, string> = { Barcelona: '#d94b43', Liverpool: '#c53d48', 'Manchester City': '#3298ad', 'Real Madrid': '#d1a342' }
+const lightColors: Record<string, string> = { Barcelona: '#efd0cd', Liverpool: '#eed0d4', 'Manchester City': '#cde4e9', 'Real Madrid': '#eee3bd' }
 const labels: Record<string, string> = { Barcelona: 'Barcelona', Liverpool: 'Liverpool', 'Manchester City': 'Man. City', 'Real Madrid': 'Real Madrid' }
 const academyLogos: Record<string, string> = { Barcelona: 'barcelona.svg', Liverpool: 'liverpool.svg', 'Manchester City': 'manchester-city.svg', 'Real Madrid': 'real-madrid.svg' }
 const csv = <T,>(source: string) => Papa.parse<T>(source, { header: true, dynamicTyping: true, skipEmptyLines: true }).data
 const players = csv<Player>(indicesSource)
+const professionals = csv<ProfessionalPlayer>(professionalsSource)
 const summaries = csv<Summary>(descriptiveSource)
 const tests = csv<TestResult>(kruskalSource)
 const number = (value: number, digits = 1) => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: digits }).format(value)
+
+function zoomRange(
+  range: [number, number],
+  total: number,
+  factor: number,
+): [number, number] {
+  if (total <= 1) return [0, Math.max(0, total - 1)]
+  const currentLength = Math.max(1, range[1] - range[0] + 1)
+  const nextLength = Math.min(total, Math.max(2, Math.round(currentLength * factor)))
+  const center = (range[0] + range[1]) / 2
+  let start = Math.round(center - (nextLength - 1) / 2)
+  start = Math.max(0, Math.min(total - nextLength, start))
+  return [start, start + nextLength - 1]
+}
+
+function chartDomain(values: number[], fallback: [number, number]): [number, number] {
+  if (!values.length) return fallback
+  const minimum = Math.min(...values)
+  const maximum = Math.max(...values)
+  const padding = Math.max((maximum - minimum) * 0.06, maximum * 0.015, 1)
+  return [Math.max(0, minimum - padding), maximum + padding]
+}
 
 function MethodologyPage({ onBack }: { onBack: () => void }) {
   const academies = Object.keys(colors)
@@ -42,7 +87,7 @@ function MethodologyPage({ onBack }: { onBack: () => void }) {
     <section className="method-section">
       <div className="method-section-heading"><span>01 — DESENHO DA ANÁLISE</span><h2>Da seleção ao teste estatístico</h2><p>As regras definem quem entra na amostra e como as métricas são comparadas.</p></div>
       <div className="method-steps">
-        <article><span className="step-number">01</span><h3>Quem foi incluído</h3><p>Jogadores formados por Barcelona, Real Madrid, Manchester City ou Liverpool, com estreia profissional pelo clube formador a partir de 2020 e pelo menos 900 minutos. Foram selecionados até 15 por academia, priorizando minutos.</p></article>
+        <article><span className="step-number">01</span><h3>Quem foi incluído</h3><p>Jogadores formados por Barcelona, Real Madrid, Manchester City ou Liverpool, com estreia profissional pelo clube formador a partir de 2016 e pelo menos 900 minutos. Foram selecionados até 15 por academia, priorizando minutos.</p></article>
         <article><span className="step-number">02</span><h3>Métricas comparáveis</h3><p>Estatísticas de eventos são padronizadas por 90 minutos. Os valores são convertidos em percentis dentro da categoria posicional, com grupo mais amplo quando há poucos casos.</p></article>
         <article><span className="step-number">03</span><h3>Dois índices, 0 a 100</h3><p>Cada índice é a média ponderada dos percentis das métricas previamente definidas. O técnico reúne passe, criação, drible e participação ofensiva.</p></article>
         <article><span className="step-number">04</span><h3>Comparação não paramétrica</h3><p>Kruskal–Wallis compara as quatro academias. Mann–Whitney compara os pares com correção de Bonferroni. O nível de significância adotado é 0,05.</p></article>
@@ -73,7 +118,7 @@ function SourcesPage({ onBack }: { onBack: () => void }) {
     <div className="sources-hero">
       <div className="eyebrow"><i /> TRANSPARÊNCIA · ORIGEM DOS DADOS</div>
       <h1>De onde vêm<br /><em>as informações.</em></h1>
-      <p>As bases foram combinadas por identificador do jogador e revisadas para formar a amostra comparativa das quatro academias.</p>
+      <p>As bases de partidas permitem uma visão histórica dos profissionais; a confirmação de formação e os índices permanecem restritos aos atletas revisados e calculados.</p>
       <button className="back-button" onClick={onBack}><ArrowLeft size={15} /> Voltar ao painel</button>
       <span className="sources-hero-mark"><Database size={25} /></span>
     </div>
@@ -82,7 +127,7 @@ function SourcesPage({ onBack }: { onBack: () => void }) {
       <article className="source-card source-featured">
         <div className="source-card-top"><span className="source-icon"><Database size={18} /></span><span className="source-tag">BASE ESTRUTURADA</span></div>
         <h2>Transfermarkt via Kaggle</h2>
-        <p>O conjunto <em>player-scores</em> fornece jogadores, posições, partidas, minutos e histórico de transferências. Foi usado para preparar a seleção inicial e a base de aparições.</p>
+        <p>O conjunto <em>player-scores</em> fornece jogadores, posições, partidas, minutos e histórico de transferências. As aparições observadas de 2012 a 2026 formam a visão histórica profissional; a data não significa elenco atual.</p>
         <a href="https://www.kaggle.com/datasets/davidcariboo/player-scores" target="_blank" rel="noreferrer">Abrir dataset no Kaggle <ExternalLink size={14} /></a>
         <small>Responsável pela seleção inicial: <code>src/coleta/transfermarkt.py</code></small>
       </article>
@@ -137,11 +182,14 @@ const projectSections = [
       ['data/interim/candidatos_formados.csv', 'Lista ampla de possíveis jogadores formados, preparada para conferência manual.'],
       ['data/interim/por90_*.csv', 'Métricas convertidas para uma escala comum por 90 minutos.'],
       ['data/processed/jogadores_validos.csv', 'Amostra final validada que alimenta as análises.'],
+      ['data/processed/jogadores_profissionais.csv', 'Resumo histórico de jogadores-clube desde 2012; formação não confirmada não é tratada como ausência de formação.'],
       ['data/processed/percentis_metricas.csv', 'Percentis por métrica e grupo posicional usados na montagem dos índices.'],
       ['data/processed/indices_jogadores.csv', 'Índices técnico e explosivo, cobertura e dados de cada atleta.'],
       ['data/processed/descritiva_academias.csv', 'Tamanho dos grupos, medianas, quartis e extremos por academia.'],
       ['data/processed/kruskal_wallis.csv e mann_whitney_bonferroni.csv', 'Testes globais e comparações par a par com ajuste de Bonferroni.'],
       ['data/processed/cobertura_metricas.csv', 'Mostra quantos jogadores possuem valor disponível para cada métrica.'],
+      ['src/analise/jogadores_profissionais.py', 'Agrega partidas observadas e associa a confirmação manual e os índices disponíveis.'],
+      ['data/processed/formacao_jogadores.sqlite3', 'Banco SQLite com os resultados da amostra e a tabela histórica de profissionais.'],
     ],
   },
   {
@@ -151,12 +199,12 @@ const projectSections = [
       ['src/coleta/', 'Módulos de coleta e preparação de jogadores, estatísticas e dados complementares.'],
       ['src/coleta/transfermarkt.py', 'Lê os CSVs do Kaggle e monta candidatos à amostra de jogadores formados.'],
       ['src/coleta/sofascore.py', 'Localiza IDs e coleta estatísticas sazonais, mantendo cópias em cache.'],
-      ['src/coleta/uefa_youth.py e bdfutbol.py', 'Módulos de apoio para informações de competições e trajetórias de base.'],
+      ['src/coleta/uefa_youth.py e bdfutbol.py', 'Validam e normalizam CSVs locais previamente obtidos; não fazem scraping.'],
       ['src/tratamento/', 'Integra bases, trata valores ausentes, padroniza por 90 minutos e calcula percentis.'],
-      ['src/tratamento/integracao.py e limpeza.py', 'Unificam fontes pela chave do jogador e aplicam regras de qualidade.'],
+      ['src/tratamento/integracao.py e limpeza.py', 'Juntam fontes por ID validado e verificam a qualidade sem descartar observações.'],
       ['src/tratamento/por90.py e percentis.py', 'Padronizam as taxas de jogo e posicionam os valores dentro dos grupos.'],
       ['src/features/', 'Constrói índices e características da trajetória dos jogadores.'],
-      ['src/features/indices.py, carreira.py e trajetoria.py', 'Calculam os índices e descrevem a carreira e o percurso de formação.'],
+      ['src/features/indices.py, carreira.py e trajetoria.py', 'Calculam índices e resumem aparições profissionais e temporadas de formação observadas.'],
       ['src/db.py e sql/01_schema.sql', 'Conectam ao banco e definem as tabelas relacionais do projeto.'],
       ['sql/02_indices.sql e 03_views.sql', 'Consultam índices e organizam visões prontas para análise.'],
       ['sql/04_qualidade_dados.sql', 'Reúne verificações de consistência dos registros no banco.'],
@@ -167,7 +215,7 @@ const projectSections = [
     id: 'analise', icon: FileBarChart, title: 'Análise e resultados', subtitle: 'Como a pergunta de pesquisa vira evidência.', color: 'violet',
     items: [
       ['src/analise/', 'Estatística descritiva, correlação, testes entre academias e tamanho de efeito.'],
-      ['src/analise/descritiva.py e correlacao.py', 'Resumem os grupos e investigam relações entre variáveis.'],
+      ['src/analise/descritiva.py e correlacao.py', 'Resumem os grupos e calculam Spearman exploratório entre trajetória e carreira, quando há dados.'],
       ['src/analise/testes.py e efeito.py', 'Executam testes não paramétricos e calculam o tamanho das diferenças.'],
       ['src/qualitativo/metodos_academias.py', 'Organiza a comparação descritiva dos métodos de formação.'],
       ['src/visual/', 'Gráficos e dashboard para explorar os perfis e comparar os grupos.'],
@@ -202,7 +250,7 @@ function ProjectPage({ onBack }: { onBack: () => void }) {
   const [activeStep, setActiveStep] = useState(0)
   const steps = [
     { number: '01', title: 'Selecionar', description: '35 jogadores validados em quatro academias.', section: 'dados', files: [['data/manual/jogadores_validos.csv', 'A lista revisada de atletas que atende aos critérios do estudo.'], ['src/coleta/transfermarkt.py', 'Gera os candidatos iniciais a partir de jogadores, aparições e transferências.'], ['config/settings.py', 'Registra os clubes e os critérios de estreia e minutos usados na seleção.']] },
-    { number: '02', title: 'Integrar', description: 'Conectar fontes por identificador do jogador.', section: 'pipeline', files: [['data/manual/ids_sofascore.csv', 'Relaciona os IDs do projeto aos IDs encontrados no Sofascore.'], ['src/tratamento/integracao.py', 'Combina as bases usando o identificador do jogador, não apenas o nome.'], ['data/raw/players.csv e transfers.csv', 'Complementam a seleção com perfil e histórico de transferências.']] },
+    { number: '02', title: 'Integrar', description: 'Conectar fontes por identificador do jogador.', section: 'pipeline', files: [['data/manual/ids_sofascore.csv', 'Relaciona os IDs do projeto aos IDs encontrados no Sofascore.'], ['src/tratamento/integracao.py', 'Combina as bases usando o identificador do jogador e valida a cardinalidade.'], ['data/raw/players.csv e transfers.csv', 'Complementam a seleção com perfil e histórico de transferências.']] },
     { number: '03', title: 'Padronizar', description: 'Comparar métricas por 90 minutos e posição.', section: 'pipeline', files: [['src/tratamento/por90.py', 'Coloca estatísticas de jogo na escala comum por 90 minutos.'], ['src/tratamento/percentis.py', 'Calcula percentis comparáveis dentro das categorias posicionais.'], ['config/metricas.yaml e posicoes.yaml', 'Definem métricas dos índices e agrupamentos de posição.']] },
     { number: '04', title: 'Analisar', description: 'Índices, estatística descritiva e testes.', section: 'analise', files: [['src/features/indices.py', 'Monta os índices técnico e explosivo a partir dos percentis.'], ['src/analise/descritiva.py e testes.py', 'Resume os grupos e testa diferenças entre academias.'], ['data/processed/kruskal_wallis.csv', 'Guarda o resultado do teste global para os dois índices.']] },
     { number: '05', title: 'Comunicar', description: 'Dashboard, gráficos e documentação.', section: 'qualidade', files: [['frontend/src/App.tsx e App.css', 'Apresentam o dashboard e as páginas interativas do projeto.'], ['reports/graficos/', 'Reúne gráficos exportados para explorar e apresentar os resultados.'], ['README.md e notebooks/', 'Documentam a execução e comunicam o processo e os resultados.']] },
@@ -258,18 +306,63 @@ function App() {
   const [academy, setAcademy] = useState('Todas as academias')
   const [query, setQuery] = useState('')
   const [view, setView] = useState<'overview' | 'players' | 'methodology' | 'sources' | 'project'>('overview')
+  const [scoreRange, setScoreRange] = useState<[number, number]>([0, players.length - 1])
+  const [professionalRange, setProfessionalRange] = useState<[number, number]>([0, professionals.length - 1])
   const filtered = useMemo(() => players.filter((player) => academy === 'Todas as academias' || player.clube === academy)
     .filter((player) => player.nome.toLocaleLowerCase('pt-BR').includes(query.trim().toLocaleLowerCase('pt-BR')))
     .sort((a, b) => b[metric] - a[metric]), [academy, metric, query])
+  const scoreChartData = professionals
+    .filter((player) => (academy === 'Todas as academias' || player.clube === academy)
+      && Number.isFinite(player.indice_tecnico)
+      && Number.isFinite(player.indice_explosivo))
+    .map((player) => ({
+      x: Number(player.indice_tecnico),
+      y: Number(player.indice_explosivo),
+      nome: player.nome,
+      clube: player.clube,
+      formacao_status: player.formacao_status,
+      cobertura_tecnico: player.cobertura_tecnico,
+      cobertura_explosivo: player.cobertura_explosivo,
+    }))
+    .sort((a, b) => a.x - b.x)
+  const visibleScoreData = scoreChartData.slice(scoreRange[0], scoreRange[1] + 1)
+  const professionalChartData = professionals
+    .filter((player) => academy === 'Todas as academias' || player.clube === academy)
+    .map((player) => ({ ...player, x: player.jogos_profissionais, y: player.minutos_profissionais }))
+    .sort((a, b) => a.x - b.x || a.y - b.y)
+  const visibleProfessionalData = professionalChartData.slice(professionalRange[0], professionalRange[1] + 1)
+  const hasHistoricalScores = professionals.some((player) => player.universo_indices === 'coorte_profissional')
+  const scoreXDomain = chartDomain(visibleScoreData.map((item) => item.x), [0, 100])
+  const scoreYDomain = chartDomain(visibleScoreData.map((item) => item.y), [0, 100])
+  const professionalXDomain = chartDomain(visibleProfessionalData.map((item) => item.x), [0, 1])
+  const professionalYDomain = chartDomain(visibleProfessionalData.map((item) => item.y), [0, 1])
   const chartData = summaries.filter((row) => row.metrica === metric && (academy === 'Todas as academias' || row.academia === academy))
   const scopedPlayers = players.filter((player) => academy === 'Todas as academias' || player.clube === academy)
-  const groups = Object.keys(colors).filter((name) => academy === 'Todas as academias' || name === academy).map((name) => ({
-    name, data: players.filter((player) => player.clube === name).map((player) => ({ x: player.indice_tecnico, y: player.indice_explosivo, nome: player.nome })),
-  }))
   const pValue = tests.find((row) => row.metrica === metric)?.p_value ?? 0
   const sortedScores = scopedPlayers.map((player) => player[metric]).sort((a, b) => a - b)
   const middle = Math.floor(sortedScores.length / 2)
   const median = sortedScores.length ? sortedScores.length % 2 ? sortedScores[middle] : (sortedScores[middle - 1] + sortedScores[middle]) / 2 : 0
+
+  function selectAcademy(nextAcademy: string) {
+    setAcademy(nextAcademy)
+    const scoresForAcademy = professionals.filter((player) =>
+      (nextAcademy === 'Todas as academias' || player.clube === nextAcademy)
+      && Number.isFinite(player.indice_tecnico)
+      && Number.isFinite(player.indice_explosivo))
+    const professionalsForAcademy = professionals.filter((player) =>
+      nextAcademy === 'Todas as academias' || player.clube === nextAcademy)
+    setScoreRange([0, Math.max(0, scoresForAcademy.length - 1)])
+    setProfessionalRange([0, Math.max(0, professionalsForAcademy.length - 1)])
+  }
+
+  function changeZoom(
+    range: [number, number],
+    setRange: (nextRange: [number, number]) => void,
+    total: number,
+    factor: number,
+  ) {
+    setRange(zoomRange(range, total, factor))
+  }
 
   function exportCsv() {
     const data = Papa.unparse(filtered.map(({ nome, clube, categoria, indice_tecnico, indice_explosivo, minutos }) => ({ nome, academia: clube, posicao: categoria, indice_tecnico, indice_explosivo, minutos })))
@@ -290,7 +383,7 @@ function App() {
         <button className={view === 'players' ? 'nav-item active' : 'nav-item'} onClick={() => setView('players')}><Users size={17} /> Jogadores <span className="nav-count">{filtered.length}</span></button>
       </nav>
       <div className="sidebar-label academies-label">ACADEMIAS</div>
-      <div className="academy-list">{Object.keys(colors).map((name) => <button key={name} className={academy === name ? 'academy-link selected' : 'academy-link'} onClick={() => setAcademy(academy === name ? 'Todas as academias' : name)} title={name} aria-label={`Filtrar por ${name}`} aria-pressed={academy === name}><span className="academy-logo-wrap"><img className="academy-logo" src={`/logos/${academyLogos[name]}`} alt="" /></span><span>{name}</span><small>{players.filter((player) => player.clube === name).length}</small></button>)}</div>
+      <div className="academy-list">{Object.keys(colors).map((name) => <button key={name} className={academy === name ? 'academy-link selected' : 'academy-link'} onClick={() => selectAcademy(academy === name ? 'Todas as academias' : name)} title={`${name}: ${professionals.filter((player) => player.clube === name).length} vínculos profissionais observados`} aria-label={`Filtrar por ${name}`} aria-pressed={academy === name}><span className="academy-logo-wrap"><img className="academy-logo" src={`/logos/${academyLogos[name]}`} alt="" /></span><span>{name}</span><small>{professionals.filter((player) => player.clube === name).length}</small></button>)}</div>
       <div className="sidebar-bottom"><button className="season-chip" onClick={() => setView('sources')} title="Ver fontes da pesquisa" aria-label="Ver fontes da pesquisa"><Database size={14} /> <span>FONTES DA PESQUISA</span><ArrowUpRight size={13} /></button><div className="project-credit"><GraduationCap size={16} /><span>Projeto Integrador<br /><strong>Ciência de Dados · FATEC</strong></span></div></div>
     </aside>
 
@@ -299,13 +392,71 @@ function App() {
       <div className="page-wrap">
         <section className={view === 'overview' || view === 'players' ? 'page-heading' : 'page-heading hidden'}><div><div className="eyebrow"><i /> FUTEBOL · DESENVOLVIMENTO DE TALENTOS</div><h1>{view === 'overview' ? <>O que forma<br /><em>um jogador?</em></> : <>Talentos<br /><em>revelados.</em></>}</h1><p className="intro">Uma leitura comparativa dos atletas revelados por quatro das principais academias europeias.</p></div><aside className="heading-aside"><div>ESTUDO <span>01 / 04</span></div><i /><p>Associação observada.<br /><strong>Causalidade não inferida.</strong></p></aside></section>
 
-        <section className={view === 'overview' || view === 'players' ? 'control-row' : 'control-row hidden'}><div className="view-toggle" role="group" aria-label="Índice"><button className={metric === 'indice_tecnico' ? 'toggle-option selected' : 'toggle-option'} onClick={() => setMetric('indice_tecnico')}><b>T</b> Técnico</button><button className={metric === 'indice_explosivo' ? 'toggle-option selected' : 'toggle-option'} onClick={() => setMetric('indice_explosivo')}><b>E</b> Explosivo</button></div><div className="filter-group"><span><Filter size={13} /> FILTROS</span><label className="select-wrap"><span className="sr-only">Filtrar por academia</span><select value={academy} onChange={(event) => setAcademy(event.target.value)}><option>Todas as academias</option>{Object.keys(colors).map((name) => <option key={name}>{name}</option>)}</select><ChevronDown size={14} /></label><button className="export-button" onClick={exportCsv} title="Exportar jogadores"><Download size={15} /><span>Exportar</span></button></div></section>
+        <section className={view === 'overview' || view === 'players' ? 'control-row' : 'control-row hidden'}><div className="view-toggle" role="group" aria-label="Índice"><button className={metric === 'indice_tecnico' ? 'toggle-option selected' : 'toggle-option'} onClick={() => setMetric('indice_tecnico')}><b>T</b> Técnico</button><button className={metric === 'indice_explosivo' ? 'toggle-option selected' : 'toggle-option'} onClick={() => setMetric('indice_explosivo')}><b>E</b> Explosivo</button></div><div className="filter-group"><span><Filter size={13} /> FILTROS</span><label className="select-wrap"><span className="sr-only">Filtrar por academia</span><select value={academy} onChange={(event) => selectAcademy(event.target.value)}><option>Todas as academias</option>{Object.keys(colors).map((name) => <option key={name}>{name}</option>)}</select><ChevronDown size={14} /></label><button className="export-button" onClick={exportCsv} title="Exportar jogadores"><Download size={15} /><span>Exportar</span></button></div></section>
 
         {view === 'project' ? <ProjectPage onBack={() => setView('overview')} /> : view === 'sources' ? <SourcesPage onBack={() => setView('overview')} /> : view === 'methodology' ? <MethodologyPage onBack={() => setView('overview')} /> : view === 'overview' ? <>
           <section className="stats-grid"><article className="stat-block"><div className="stat-top">ATLETAS NA AMOSTRA <Users size={16} /></div><div className="stat-value">{scopedPlayers.length}<span> atletas</span></div><div className="stat-foot">{academy === 'Todas as academias' ? 'Quatro academias observadas' : academy}</div></article><article className="stat-block"><div className="stat-top">MEDIANA DO ÍNDICE <Activity size={15} /></div><div className="stat-value">{number(median)}<span> / 100</span></div><div className="stat-foot">Perfil {metric === 'indice_tecnico' ? 'técnico' : 'explosivo'}</div></article><article className="stat-block"><div className="stat-top">MINUTOS ANALISADOS <GraduationCap size={16} /></div><div className="stat-value">{number(scopedPlayers.reduce((sum, player) => sum + (player.minutos || 0), 0) / 1000, 0)}<span> mil</span></div><div className="stat-foot">Equipes principais</div></article><article className="stat-block"><div className="stat-top">KRUSKAL–WALLIS <ShieldCheck size={16} /></div><div className="stat-value">p = {number(pValue, 3)}</div><div className="stat-foot"><span className="status-pill">Sem diferença significativa</span></div></article></section>
           <section className="analysis-grid">
             <article className="panel"><div className="panel-heading"><div><small>COMPARAÇÃO ENTRE GRUPOS</small><h2>Índice por academia</h2></div><span className="unit-label">MEDIANA · 0—100</span></div><div className="chart-legend">{Object.entries(colors).map(([name, color]) => <span key={name}><i style={{ backgroundColor: color }} />{labels[name]}</span>)}</div><div className="median-chart"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={chartData} margin={{ top: 10, right: 12, bottom: 1, left: -20 }}><CartesianGrid vertical={false} stroke="#e9e9e2" strokeDasharray="3 5" /><XAxis dataKey="academia" axisLine={false} tickLine={false} tick={{ fill: '#777d75', fontSize: 11 }} tickFormatter={(value: string) => labels[value] ?? value} dy={9} /><YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} axisLine={false} tickLine={false} tick={{ fill: '#969b94', fontSize: 10 }} /><Tooltip content={({ active, payload }) => active && payload?.length ? <div className="chart-tooltip"><strong>{labels[String(payload[0].payload.academia)]}</strong><span>Mediana <b>{number(Number(payload[0].value))}</b></span><span>Atletas <b>{payload[0].payload.n}</b></span></div> : null} /><Scatter dataKey="mediana" r={7}>{chartData.map((entry) => <Cell key={entry.academia} fill={colors[entry.academia]} stroke="#fff" strokeWidth={2} />)}</Scatter></ComposedChart></ResponsiveContainer></div><div className="panel-footnote">ⓘ Amostras pequenas; leia as medianas junto aos quartis e ao valor-p.</div></article>
-            <article className="panel"><div className="panel-heading"><div><small>PERFIL DOS JOGADORES</small><h2>Técnica × explosividade</h2></div><span className="unit-label">{filtered.length} atletas</span></div><div className="scatter-chart"><ResponsiveContainer width="100%" height="100%"><ScatterChart margin={{ top: 13, right: 16, bottom: 5, left: -14 }}><CartesianGrid stroke="#e9e9e2" strokeDasharray="3 5" /><XAxis type="number" dataKey="x" domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} axisLine={false} tickLine={false} tick={{ fill: '#929890', fontSize: 10 }} /><YAxis type="number" dataKey="y" domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} axisLine={false} tickLine={false} tick={{ fill: '#929890', fontSize: 10 }} /><Tooltip content={({ active, payload }) => active && payload?.length ? <div className="chart-tooltip"><strong>{payload[0].payload.nome}</strong><span>Técnico <b>{number(payload[0].payload.x)}</b></span><span>Explosivo <b>{number(payload[0].payload.y)}</b></span></div> : null} />{groups.map((group) => <Scatter key={group.name} name={group.name} data={group.data} fill={colors[group.name]} fillOpacity={0.8} />)}</ScatterChart></ResponsiveContainer></div><div className="axis-caption"><span>ÍNDICE TÉCNICO</span><span>ÍNDICE EXPLOSIVO ↑</span></div></article>
+            <article className="panel">
+              <div className="panel-heading">
+                <div><small>PERFIL PROFISSIONAL · ÍNDICES CALCULADOS</small><h2>Técnica × explosividade</h2><p className="panel-subtitle">{hasHistoricalScores ? 'Percentis posicionais recalculados na coorte histórica; cada índice exige cobertura mínima de 50% das métricas previstas.' : `Pontuações comparáveis ainda disponíveis para ${scoreChartData.length} atletas da amostra original. Para expandir, colete as métricas Sofascore da coorte histórica e recalcule os índices.`}</p></div>
+                <div className="zoom-controls" role="group" aria-label="Controles de zoom do gráfico de índices">
+                  <button onClick={() => changeZoom(scoreRange, setScoreRange, scoreChartData.length, 0.65)} title="Aproximar" aria-label="Aproximar gráfico"><ZoomIn size={15} /></button>
+                  <button onClick={() => changeZoom(scoreRange, setScoreRange, scoreChartData.length, 1 / 0.65)} title="Afastar" aria-label="Afastar gráfico"><ZoomOut size={15} /></button>
+                  <button onClick={() => setScoreRange([0, Math.max(0, scoreChartData.length - 1)])} title="Redefinir zoom" aria-label="Redefinir zoom"><RotateCcw size={14} /></button>
+                </div>
+              </div>
+              <div className="professional-legend score-legend">{Object.entries(colors).map(([name, color]) => <span key={name}><i style={{ backgroundColor: color }} />{labels[name]}</span>)}<span><i className="dot-example confirmed" />Base confirmada</span><span><i className="dot-example unconfirmed" />Formação não confirmada</span></div>
+              <div className="scatter-chart score-scatter"><ResponsiveContainer width="100%" height="100%"><ScatterChart data={scoreChartData} margin={{ top: 13, right: 16, bottom: 5, left: -14 }}><CartesianGrid stroke="#e9e9e2" strokeDasharray="3 5" /><XAxis type="number" dataKey="x" domain={scoreXDomain} ticks={[0, 25, 50, 75, 100]} allowDataOverflow axisLine={false} tickLine={false} tick={{ fill: '#929890', fontSize: 10 }} /><YAxis type="number" dataKey="y" domain={scoreYDomain} ticks={[0, 25, 50, 75, 100]} allowDataOverflow axisLine={false} tickLine={false} tick={{ fill: '#929890', fontSize: 10 }} /><Tooltip content={({ active, payload }) => active && payload?.length ? <div className="chart-tooltip"><strong>{payload[0].payload.nome}</strong><span>{labels[payload[0].payload.clube]} · {payload[0].payload.formacao_status === 'confirmada' ? 'base confirmada' : 'formação não confirmada'}</span><span>Técnico <b>{number(payload[0].payload.x)}</b> · cobertura {number(payload[0].payload.cobertura_tecnico * 100, 0)}%</span><span>Explosivo <b>{number(payload[0].payload.y)}</b> · cobertura {number(payload[0].payload.cobertura_explosivo * 100, 0)}%</span></div> : null} /><Scatter data={visibleScoreData} fill="#506c56">{visibleScoreData.map((entry) => <Cell key={`${entry.clube}-${entry.nome}`} fill={entry.formacao_status === 'confirmada' ? colors[entry.clube] : lightColors[entry.clube]} stroke={entry.formacao_status === 'confirmada' ? '#fff' : colors[entry.clube]} strokeWidth={entry.formacao_status === 'confirmada' ? 1 : 0.7} />)}</Scatter></ScatterChart></ResponsiveContainer></div>
+              <div className="axis-caption"><span>ÍNDICE TÉCNICO</span><span>ÍNDICE EXPLOSIVO ↑</span><span>{visibleScoreData.length} de {scoreChartData.length}</span></div>
+            </article>
+          </section>
+          <section className="professional-section">
+            <article className="panel professional-panel">
+              <div className="panel-heading"><div><small>TRAJETÓRIA PROFISSIONAL · DADOS OBSERVADOS DESDE 2012</small><h2>Formados confirmados e demais profissionais</h2><p className="panel-subtitle">Cada ponto representa um jogador-clube. O tom claro indica formação não confirmada; não significa que o atleta não veio da base. Este recorte não é o elenco atual.</p></div>
+                <div className="zoom-controls" role="group" aria-label="Controles de zoom do gráfico profissional">
+                  <button onClick={() => changeZoom(professionalRange, setProfessionalRange, professionalChartData.length, 0.65)} title="Aproximar" aria-label="Aproximar gráfico"><ZoomIn size={15} /></button>
+                  <button onClick={() => changeZoom(professionalRange, setProfessionalRange, professionalChartData.length, 1 / 0.65)} title="Afastar" aria-label="Afastar gráfico"><ZoomOut size={15} /></button>
+                  <button onClick={() => setProfessionalRange([0, Math.max(0, professionalChartData.length - 1)])} title="Redefinir zoom" aria-label="Redefinir zoom"><RotateCcw size={14} /></button>
+                </div>
+              </div>
+              <div className="professional-legend">
+                {Object.entries(colors).map(([name, color]) => <span key={name}><i style={{ backgroundColor: color }} />{labels[name]}</span>)}
+                <span><i className="dot-example confirmed" />Base confirmada</span><span><i className="dot-example unconfirmed" />Não confirmado</span>
+                <strong>{professionalChartData.length} vínculos jogador-clube</strong>
+              </div>
+              <div className="professional-chart">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ScatterChart data={professionalChartData} margin={{ top: 14, right: 20, bottom: 8, left: 8 }}>
+                    <CartesianGrid stroke="#e9e9e2" strokeDasharray="3 5" />
+                    <XAxis type="number" dataKey="x" name="Jogos" domain={professionalXDomain} allowDataOverflow axisLine={false} tickLine={false} tick={{ fill: '#929890', fontSize: 10 }} label={{ value: 'Jogos profissionais registrados', position: 'insideBottom', offset: -3, fill: '#788078', fontSize: 10 }} />
+                    <YAxis type="number" dataKey="y" name="Minutos" domain={professionalYDomain} allowDataOverflow axisLine={false} tickLine={false} tick={{ fill: '#929890', fontSize: 10 }} label={{ value: 'Minutos', angle: -90, position: 'insideLeft', fill: '#788078', fontSize: 10 }} />
+                    <Tooltip content={({ active, payload }) => {
+                      const player = active && payload?.length ? payload[0].payload : null
+                      return player ? <div className="chart-tooltip professional-tooltip">
+                        <strong>{player.nome}</strong>
+                        <span>{labels[player.clube]} · {player.position || 'Posição não informada'}{player.sub_position ? ` · ${player.sub_position}` : ''}</span>
+                        <span>Anos observados <b>{player.ano_primeira_aparicao}–{player.ano_ultima_aparicao}</b></span>
+                        <span>Jogos <b>{number(player.jogos_profissionais, 0)}</b></span>
+                        <span>Minutos <b>{number(player.minutos_profissionais, 0)}</b></span>
+                        <span>Formação <b>{player.formacao_status === 'confirmada' ? 'confirmada' : 'não confirmada'}</b></span>
+                        <span>Técnico <b>{player.indice_tecnico == null ? 'não calculado' : `${number(player.indice_tecnico)} · cobertura ${number((player.cobertura_tecnico ?? 0) * 100, 0)}%`}</b></span>
+                        <span>Explosivo <b>{player.indice_explosivo == null ? 'não calculado' : `${number(player.indice_explosivo)} · cobertura ${number((player.cobertura_explosivo ?? 0) * 100, 0)}%`}</b></span>
+                      </div> : null
+                    }} />
+                    <Scatter data={visibleProfessionalData} fill="#748477">
+                      {visibleProfessionalData.map((player) => {
+                        const confirmed = player.formacao_status === 'confirmada'
+                        return <Cell key={`${player.clube}-${player.player_id}`} fill={confirmed ? colors[player.clube] : lightColors[player.clube]} fillOpacity={confirmed ? 0.95 : 0.9} stroke={confirmed ? '#fffefa' : colors[player.clube]} strokeOpacity={confirmed ? 1 : 0.35} strokeWidth={confirmed ? 1.2 : 0.7} />
+                      })}
+                    </Scatter>
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="chart-zoom-caption">{visibleProfessionalData.length} de {professionalChartData.length} pontos visíveis · aproxime para inspecionar grupos</div>
+              <div className="panel-footnote">ⓘ Tooltip: nome, posição, anos observados, jogos, minutos e índices quando disponíveis. Os índices técnico/explosivo não foram calculados para os profissionais fora da amostra validada.</div>
+            </article>
           </section>
           <section className="bottom-grid"><article className="panel ranking-panel"><div className="panel-heading"><div><small>DESTAQUES DA AMOSTRA</small><h2>Maiores índices</h2></div><button className="text-action" onClick={() => setView('players')}>Ver todos <ArrowUpRight size={14} /></button></div>{filtered.slice(0, 4).map((player, index) => <div className="ranking-row" key={player.nome}><span className="rank-number">0{index + 1}</span><span className="rank-name">{player.nome}<small>{player.categoria.replaceAll('_', ' ')}</small></span><span className="rank-club"><i style={{ backgroundColor: colors[player.clube] }} />{labels[player.clube]}</span><strong>{number(player[metric])}</strong></div>)}</article><article className="method-note"><div className="method-top"><CircleHelp size={17} /> LEITURA DO ESTUDO</div><h3>Um retrato, não uma sentença.</h3><p>Os resultados comparam os jogadores observados. Não demonstram que a academia causou o desempenho.</p><div className="method-result">Teste global sem significância<br /><strong>p &gt; 0,05 nos dois perfis</strong></div></article></section>
         </> : <section className="panel players-panel"><div className="panel-heading players-heading"><div><small>AMOSTRA VALIDADA</small><h2>Jogadores formados</h2><p>{filtered.length} atletas · ordenados pelo índice {metric === 'indice_tecnico' ? 'técnico' : 'explosivo'}</p></div><label className="search-box"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar jogador" /></label></div><div className="table-wrap"><table><thead><tr><th>JOGADOR</th><th>ACADEMIA</th><th>POSIÇÃO</th><th>ÍNDICE TÉCNICO</th><th>ÍNDICE EXPLOSIVO</th><th>MINUTOS</th><th /></tr></thead><tbody>{filtered.map((player) => <tr key={player.nome}><td><strong>{player.nome}</strong></td><td><span className="table-club"><i style={{ backgroundColor: colors[player.clube] }} />{player.clube}</span></td><td>{player.categoria.replaceAll('_', ' ')}</td><td>{number(player.indice_tecnico)}</td><td>{number(player.indice_explosivo)}</td><td>{number(player.minutos, 0)}</td><td><a href={player.url} target="_blank" rel="noreferrer" aria-label={`Perfil de ${player.nome}`}><ArrowUpRight size={15} /></a></td></tr>)}</tbody></table>{!filtered.length && <div className="empty-state">Nenhum jogador encontrado.</div>}</div></section>}

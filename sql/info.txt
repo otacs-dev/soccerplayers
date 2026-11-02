@@ -1,0 +1,3 @@
+Essa pasta serve apenas como estrutura, para visualizar os dados veja em:
+                                                            
+                                                    "data/processed/formacao_jogadores.sqlite3

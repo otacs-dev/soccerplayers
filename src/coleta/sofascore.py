@@ -58,6 +58,8 @@ BASE = "https://www.sofascore.com/api/v1"
 DIR_CACHE = settings.DIR_RAW / "sofascore"
 ARQ_IDS = settings.DIR_MANUAL / "ids_sofascore.csv"
 ARQ_SAIDA = settings.DIR_INTERIM / "sofascore_temporada.csv"
+ARQ_IDS_PROFISSIONAIS = settings.DIR_MANUAL / "ids_sofascore_profissionais.csv"
+ARQ_SAIDA_PROFISSIONAIS = settings.DIR_INTERIM / "sofascore_profissionais.csv"
 
 # Valores opcionais: se não existirem no settings.py, usa estes padrões.
 PAUSA = getattr(settings, "PAUSA_SEGUNDOS", 1.5)
@@ -214,23 +216,81 @@ def cmd_ids():
         print("(o ID é o número no fim do link do jogador em sofascore.com)")
 
 
+def cmd_ids_profissionais():
+    """Resolve e persiste IDs Sofascore da coorte histórica com nome e nascimento."""
+    caminho_coorte = settings.DIR_PROCESSED / "jogadores_profissionais.csv"
+    if not caminho_coorte.exists():
+        sys.exit("Gere primeiro: python -m src.analise.jogadores_profissionais")
+    jogadores = pd.read_csv(caminho_coorte, encoding="utf-8-sig")
+    jogadores = jogadores.drop_duplicates("player_id").copy()
+    jogadores["id_tm"] = jogadores["player_id"].astype(str)
+
+    atual = pd.DataFrame(columns=["id_tm", "nome", "date_of_birth", "id_sofascore", "status"])
+    if ARQ_IDS_PROFISSIONAIS.exists():
+        atual = pd.read_csv(ARQ_IDS_PROFISSIONAIS, dtype=str, encoding="utf-8-sig").fillna("")
+    elif ARQ_IDS.exists():
+        atual = pd.read_csv(ARQ_IDS, dtype=str, encoding="utf-8-sig").fillna("")
+        if "date_of_birth" not in atual:
+            atual["date_of_birth"] = ""
+    atual_por_id = atual.drop_duplicates("id_tm", keep="last").set_index("id_tm", drop=False)
+
+    linhas = []
+    for _, jogador in jogadores.iterrows():
+        id_tm = str(jogador["id_tm"])
+        nascimento = str(jogador.get("date_of_birth", ""))[:10]
+        existente = atual_por_id.loc[id_tm].to_dict() if id_tm in atual_por_id.index else {}
+        id_sofascore = str(existente.get("id_sofascore", "")).strip()
+        status = str(existente.get("status", "")).strip()
+        if not id_sofascore:
+            if not nascimento or nascimento.lower() == "nan":
+                status = "data_nascimento_ausente"
+            else:
+                id_sofascore = buscar_id(str(jogador["nome"]), nascimento) or ""
+                status = "ok" if id_sofascore else "nao_encontrado"
+            print(f"{jogador['nome']:<28} -> {id_sofascore or status}")
+        linhas.append({
+            "id_tm": id_tm,
+            "nome": jogador["nome"],
+            "date_of_birth": nascimento,
+            "id_sofascore": id_sofascore,
+            "status": status or ("ok" if id_sofascore else "nao_encontrado"),
+        })
+        settings.DIR_MANUAL.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(linhas).to_csv(ARQ_IDS_PROFISSIONAIS, index=False, encoding="utf-8-sig")
+
+    resultado = pd.DataFrame(linhas)
+    encontrados = resultado["id_sofascore"].astype(bool).sum()
+    print(f"\nSalvo em {ARQ_IDS_PROFISSIONAIS} ({encontrados}/{len(resultado)} IDs encontrados).")
+    print("Confira os IDs e os status antes de iniciar uma coleta ampla.")
+
+
 # --------------------------------------------------------------------------
 # Passo 2: baixar as estatísticas por temporada e torneio
 # --------------------------------------------------------------------------
-def cmd_coletar():
-    ids = ler_ids()
+def _coletar_estatisticas(ids, arquivo_saida):
     ids = ids[ids["id_sofascore"] != ""]
     if ids.empty:
-        sys.exit("Nenhum ID do Sofascore. Rode primeiro: python -m src.coleta.sofascore ids")
+        raise ValueError("Nenhum ID válido do Sofascore disponível para coleta.")
 
-    linhas = []
+    existentes = pd.read_csv(arquivo_saida, encoding="utf-8-sig") if arquivo_saida.exists() else pd.DataFrame()
+    chaves_existentes = set()
+    if not existentes.empty:
+        chaves_existentes = set(zip(
+            existentes["id_tm"].astype(str),
+            existentes["temporada"].astype(str),
+            existentes["torneio"].astype(str),
+            existentes["metrica"].astype(str),
+        ))
     for n, (_, j) in enumerate(ids.iterrows(), start=1):
         sid = j["id_sofascore"]
         print(f"[{n}/{len(ids)}] {j['nome']}")
         temporadas = get(f"/player/{sid}/statistics/seasons")
+        linhas = []
 
         for ut in temporadas.get("uniqueTournamentSeasons", []):
             torneio = ut.get("uniqueTournament", {})
+            if not torneio.get("id"):
+                continue
             for s in ut.get("seasons", []):
                 ano = ano_inicio(s.get("year"))
                 if ano is None or ano < ANO_INICIAL:
@@ -241,29 +301,50 @@ def cmd_coletar():
                 for metrica, valor in estatisticas.items():
                     if isinstance(valor, bool) or not isinstance(valor, (int, float)):
                         continue
+                    temporada = rotulo_temporada(s.get("year"))
+                    chave = (str(j["id_tm"]), str(temporada), str(torneio.get("name")), str(metrica))
+                    if chave in chaves_existentes:
+                        continue
                     linhas.append({
                         "id_tm": j["id_tm"],
                         "id_sofascore": sid,
-                        "temporada": rotulo_temporada(s.get("year")),
+                        "temporada": temporada,
                         "torneio": torneio.get("name"),
                         "id_torneio": torneio.get("id"),
                         "metrica": metrica,
                         "valor": valor,
                         "fonte": "sofascore",
                     })
+                    chaves_existentes.add(chave)
+        if linhas:
+            existentes = pd.concat([existentes, pd.DataFrame(linhas)], ignore_index=True)
+            settings.DIR_INTERIM.mkdir(parents=True, exist_ok=True)
+            existentes.to_csv(arquivo_saida, index=False, encoding="utf-8-sig")
 
-    settings.DIR_INTERIM.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(linhas).to_csv(ARQ_SAIDA, index=False, encoding="utf-8-sig")
-    print(f"\nSalvo em {ARQ_SAIDA} ({len(linhas)} linhas).")
+    print(f"\nSalvo em {arquivo_saida} ({len(existentes)} linhas).")
     print("Dica: confira a coluna 'torneio' e remova no por90/analise o que não for "
           "de time principal, se aparecer (ex.: competições de base).")
+
+
+def cmd_coletar():
+    ids = ler_ids()
+    if ids.empty:
+        sys.exit("Nenhum ID do Sofascore. Rode primeiro: python -m src.coleta.sofascore ids")
+    _coletar_estatisticas(ids, ARQ_SAIDA)
+
+
+def cmd_coletar_profissionais():
+    if not ARQ_IDS_PROFISSIONAIS.exists():
+        sys.exit("Rode primeiro: python -m src.coleta.sofascore ids-profissionais")
+    ids = pd.read_csv(ARQ_IDS_PROFISSIONAIS, dtype=str, encoding="utf-8-sig").fillna("")
+    _coletar_estatisticas(ids, ARQ_SAIDA_PROFISSIONAIS)
 
 
 # --------------------------------------------------------------------------
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("comando", choices=["ids", "coletar"])
+    parser.add_argument("comando", choices=["ids", "coletar", "ids-profissionais", "coletar-profissionais"])
     parser.add_argument("--cookie", type=str, default=None,
                         help="Valor do cookie sofa_captcha copiado do navegador")
     args = parser.parse_args()
@@ -271,4 +352,9 @@ if __name__ == "__main__":
     if args.cookie:
         definir_cookie(args.cookie)
 
-    {"ids": cmd_ids, "coletar": cmd_coletar}[args.comando]()
+    {
+        "ids": cmd_ids,
+        "coletar": cmd_coletar,
+        "ids-profissionais": cmd_ids_profissionais,
+        "coletar-profissionais": cmd_coletar_profissionais,
+    }[args.comando]()

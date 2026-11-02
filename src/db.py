@@ -39,6 +39,20 @@ def inicializar_esquema(conexao: sqlite3.Connection) -> None:
 	"""Aplica os scripts SQL em ordem."""
 	for nome in ("01_schema.sql", "02_indices.sql", "03_views.sql"):
 		(conexao.executescript((DIR_SQL / nome).read_text(encoding="utf-8")))
+	colunas_profissionais = {
+		linha["name"]
+		for linha in conexao.execute("PRAGMA table_info(jogador_profissional)")
+	}
+	for coluna, definicao in {
+		"date_of_birth": "TEXT",
+		"cobertura_tecnico": "REAL CHECK (cobertura_tecnico IS NULL OR cobertura_tecnico BETWEEN 0 AND 1)",
+		"cobertura_explosivo": "REAL CHECK (cobertura_explosivo IS NULL OR cobertura_explosivo BETWEEN 0 AND 1)",
+		"n_metricas_tecnico": "INTEGER CHECK (n_metricas_tecnico IS NULL OR n_metricas_tecnico >= 0)",
+		"n_metricas_explosivo": "INTEGER CHECK (n_metricas_explosivo IS NULL OR n_metricas_explosivo >= 0)",
+		"universo_indices": "TEXT CHECK (universo_indices IS NULL OR universo_indices IN ('amostra_validada', 'coorte_profissional'))",
+	}.items():
+		if coluna not in colunas_profissionais:
+			conexao.execute(f"ALTER TABLE jogador_profissional ADD COLUMN {coluna} {definicao}")
 
 
 def _ler_csv(caminho: Path) -> list[dict[str, str]]:
@@ -65,21 +79,73 @@ def _opcional_numero(valor: Any) -> float | None:
 		return None
 
 
+def _opcional_inteiro(valor: Any) -> int | None:
+	numero = _opcional_numero(valor)
+	return int(numero) if numero is not None else None
+
+
 def _bool(valor: Any) -> int | None:
 	texto = _opcional_texto(valor)
 	if texto is None:
 		return None
-	return int(texto.lower() in {"true", "1", "sim", "yes"})
+	if texto.lower() in {"true", "1", "sim", "yes"}:
+		return 1
+	if texto.lower() in {"false", "0", "não", "nao", "no"}:
+		return 0
+	raise ValueError(f"Valor booleano inválido: {valor!r}")
 
 
 def carregar_dados(conexao: sqlite3.Connection) -> dict[str, int]:
-	"""Recarrega tabelas analíticas a partir dos CSVs do pipeline."""
+	"""Recarrega jogadores, métricas e resultados analíticos a partir dos CSVs."""
 	validos = _ler_csv(settings.DIR_PROCESSED / "jogadores_validos.csv")
 	indices = _ler_csv(settings.DIR_PROCESSED / "indices_jogadores.csv")
+	profissionais = _ler_csv(settings.DIR_PROCESSED / "jogadores_profissionais.csv")
 	if not validos or not indices:
 		raise FileNotFoundError("Rode `python run_pipeline.py` antes de carregar o banco.")
 
+	ids_validos = {int(linha["player_id"]) for linha in validos}
+	ids_indices = {int(linha["player_id"]) for linha in indices}
+	if ids_validos != ids_indices:
+		raise ValueError(
+			"A seleção validada e os índices não contêm os mesmos jogadores "
+			f"(sem índice: {sorted(ids_validos - ids_indices)[:5]}; "
+			f"sem seleção: {sorted(ids_indices - ids_validos)[:5]})."
+		)
+	clubes_validos = {linha["clube"] for linha in validos}
+	clubes_desconhecidos = clubes_validos.difference(ID_ACADEMIA)
+	if clubes_desconhecidos:
+		raise ValueError(f"Academias não cadastradas no banco: {sorted(clubes_desconhecidos)}")
+
+	percentis = _ler_csv(settings.DIR_PROCESSED / "percentis_metricas.csv")
+	cobertura = _ler_csv(settings.DIR_PROCESSED / "cobertura_metricas.csv")
+	descritivas = _ler_csv(settings.DIR_PROCESSED / "descritiva_academias.csv")
+	kruskal = _ler_csv(settings.DIR_PROCESSED / "kruskal_wallis.csv")
+	pares = _ler_csv(settings.DIR_PROCESSED / "mann_whitney_bonferroni.csv")
+	if not all((percentis, cobertura, descritivas, kruskal, pares)):
+		raise FileNotFoundError(
+			"Faltam CSVs de análise em data/processed/. Rode `python run_pipeline.py` para "
+			"gerar percentis, cobertura, descritiva e testes antes de carregar o banco."
+		)
+
+	percentis_com_ids_invalidos = [
+		linha["player_id"]
+		for linha in percentis
+		if int(linha["player_id"]) not in ids_validos
+	]
+	if percentis_com_ids_invalidos:
+		raise ValueError(
+			"Há percentis de jogadores fora da seleção validada: "
+			f"{percentis_com_ids_invalidos[:5]}."
+		)
+
 	conexao.execute("DELETE FROM estatistica_temporada")
+	conexao.execute("DELETE FROM jogador_profissional")
+	conexao.execute("DELETE FROM carreira_jogador")
+	conexao.execute("DELETE FROM teste_mann_whitney")
+	conexao.execute("DELETE FROM teste_kruskal_wallis")
+	conexao.execute("DELETE FROM descritiva_academia")
+	conexao.execute("DELETE FROM cobertura_metrica")
+	conexao.execute("DELETE FROM percentil_metrica")
 	conexao.execute("DELETE FROM indice_jogador")
 	conexao.execute("DELETE FROM passagem_base")
 	conexao.execute("DELETE FROM jogador")
@@ -132,6 +198,156 @@ def carregar_dados(conexao: sqlite3.Connection) -> dict[str, int]:
 			),
 		)
 
+	conexao.executemany(
+		"""INSERT INTO percentil_metrica (
+			player_id, position, categoria, indice, metrica, valor,
+			grupo_percentil, percentil_0_100, peso
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+		[
+			(
+				int(linha["player_id"]), _opcional_texto(linha.get("position")),
+				_opcional_texto(linha.get("categoria")), linha["indice"], linha["metrica"],
+				_opcional_numero(linha.get("valor")), _opcional_texto(linha.get("grupo_percentil")),
+				_opcional_numero(linha.get("percentil_0_100")), _opcional_numero(linha.get("peso")) or 0.0,
+			)
+			for linha in percentis
+		],
+	)
+	conexao.executemany(
+		"""INSERT INTO cobertura_metrica (
+			indice, metrica, n_jogadores, peso, n_amostra, proporcao_coberta
+		) VALUES (?, ?, ?, ?, ?, ?)""",
+		[
+			(
+				linha["indice"], linha["metrica"], int(linha["n_jogadores"]),
+				_opcional_numero(linha.get("peso")), int(linha["n_amostra"]),
+				_opcional_numero(linha.get("proporcao_coberta")),
+			)
+			for linha in cobertura
+		],
+	)
+	conexao.executemany(
+		"""INSERT INTO descritiva_academia (
+			academia, metrica, n, n_ausentes, mediana, q1, q3, minimo, maximo
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+		[
+			(
+				linha["academia"], linha["metrica"], int(linha["n"]),
+				int(linha["n_ausentes"]), _opcional_numero(linha.get("mediana")),
+				_opcional_numero(linha.get("q1")), _opcional_numero(linha.get("q3")),
+				_opcional_numero(linha.get("minimo")), _opcional_numero(linha.get("maximo")),
+			)
+			for linha in descritivas
+		],
+	)
+	conexao.executemany(
+		"""INSERT INTO teste_kruskal_wallis (
+			metrica, statistic, p_value, significativo, alpha, n_grupos
+		) VALUES (?, ?, ?, ?, ?, ?)""",
+		[
+			(
+				linha["metrica"], _opcional_numero(linha.get("statistic")),
+				_opcional_numero(linha.get("p_value")), _bool(linha.get("significativo")),
+				_opcional_numero(linha.get("alpha")), int(linha["n_grupos"]),
+			)
+			for linha in kruskal
+		],
+	)
+	conexao.executemany(
+		"""INSERT INTO teste_mann_whitney (
+			metrica, grupo_a, grupo_b, statistic, p_value, p_bonferroni,
+			significativo, median_diff, rank_biserial
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+		[
+			(
+				linha["metrica"], linha["grupo_a"], linha["grupo_b"],
+				_opcional_numero(linha.get("statistic")), _opcional_numero(linha.get("p_value")),
+				_opcional_numero(linha.get("p_bonferroni")), _bool(linha.get("significativo")),
+				_opcional_numero(linha.get("median_diff")), _opcional_numero(linha.get("rank_biserial")),
+			)
+			for linha in pares
+		],
+	)
+
+	carreira = _ler_csv(settings.DIR_PROCESSED / "carreira_jogadores.csv")
+	if carreira:
+		if {int(linha["player_id"]) for linha in carreira} != ids_validos:
+			raise ValueError("carreira_jogadores.csv não contém exatamente os jogadores validados.")
+		conexao.executemany(
+			"""INSERT INTO carreira_jogador (
+				player_id, temporadas_com_aparicoes, jogos_profissionais,
+				minutos_profissionais, gols_profissionais, assistencias_profissionais,
+				idade_estreia
+			) VALUES (?, ?, ?, ?, ?, ?, ?)""",
+			[
+				(
+					int(linha["player_id"]), int(linha["temporadas_com_aparicoes"]),
+					_opcional_numero(linha.get("jogos_profissionais")),
+					_opcional_numero(linha.get("minutos_profissionais")),
+					_opcional_numero(linha.get("gols_profissionais")),
+					_opcional_numero(linha.get("assistencias_profissionais")),
+					_opcional_numero(linha.get("idade_estreia")),
+				)
+				for linha in carreira
+			],
+		)
+
+	if profissionais:
+		ids_profissionais_invalidos = [
+			linha["player_id"]
+			for linha in profissionais
+			if int(linha["player_id"]) <= 0
+		]
+		if ids_profissionais_invalidos:
+			raise ValueError(
+				"Há player_id inválido na base de profissionais: "
+				f"{ids_profissionais_invalidos[:5]}."
+			)
+		clubes_profissionais = {linha["clube"] for linha in profissionais}
+		clubes_desconhecidos = clubes_profissionais.difference(ID_ACADEMIA)
+		if clubes_desconhecidos:
+			raise ValueError(
+				f"Clubes desconhecidos na base de profissionais: {sorted(clubes_desconhecidos)}"
+			)
+		status_invalidos = {
+			linha["formacao_status"]
+			for linha in profissionais
+			if linha["formacao_status"] not in {"confirmada", "nao_confirmada"}
+		}
+		if status_invalidos:
+			raise ValueError(f"Status de formação inválidos: {sorted(status_invalidos)}")
+		conexao.executemany(
+			"""INSERT INTO jogador_profissional (
+				player_id, clube_id, nome, position, sub_position, date_of_birth,
+				ano_primeira_aparicao, ano_ultima_aparicao, jogos_profissionais,
+				minutos_profissionais, formacao_status, indice_tecnico,
+				indice_explosivo, cobertura_tecnico, cobertura_explosivo,
+				n_metricas_tecnico, n_metricas_explosivo, universo_indices, url_perfil
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+			[
+				(
+					int(linha["player_id"]), ID_ACADEMIA[linha["clube"]], linha["nome"],
+					_opcional_texto(linha.get("position")),
+					_opcional_texto(linha.get("sub_position")),
+					_opcional_texto(linha.get("date_of_birth")),
+					int(linha["ano_primeira_aparicao"]) if _opcional_texto(linha.get("ano_primeira_aparicao")) else None,
+					int(linha["ano_ultima_aparicao"]) if _opcional_texto(linha.get("ano_ultima_aparicao")) else None,
+					int(linha["jogos_profissionais"]),
+					float(linha["minutos_profissionais"]),
+					linha["formacao_status"],
+					_opcional_numero(linha.get("indice_tecnico")),
+					_opcional_numero(linha.get("indice_explosivo")),
+					_opcional_numero(linha.get("cobertura_tecnico")),
+					_opcional_numero(linha.get("cobertura_explosivo")),
+					_opcional_inteiro(linha.get("n_metricas_tecnico")),
+					_opcional_inteiro(linha.get("n_metricas_explosivo")),
+					_opcional_texto(linha.get("universo_indices")),
+					_opcional_texto(linha.get("url")),
+				)
+				for linha in profissionais
+			],
+		)
+
 	stats = 0
 	for nome_arquivo, fonte in (
 		("por90_appearances.csv", "appearances"),
@@ -178,6 +394,13 @@ def carregar_dados(conexao: sqlite3.Connection) -> dict[str, int]:
 		"academias": len(ACADEMIAS),
 		"jogadores": len(validos),
 		"indices": len(indices),
+		"percentis": len(percentis),
+		"cobertura": len(cobertura),
+		"descritivas": len(descritivas),
+		"testes_kruskal": len(kruskal),
+		"testes_mann_whitney": len(pares),
+		"carreira": len(carreira),
+		"jogadores_profissionais": len(profissionais),
 		"estatisticas": stats,
 	}
 

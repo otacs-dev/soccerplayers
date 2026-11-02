@@ -16,7 +16,14 @@ import yaml
 
 from config import settings
 from src.analise.descritiva import descritiva_por_academia
+from src.analise.jogadores_profissionais import (
+	ARQ_SAIDA as ARQ_PROFISSIONAIS,
+	gerar_base_profissionais,
+)
 from src.analise.testes import comparar_academias
+from src.features.carreira import calcular_features_carreira
+from src.tratamento.integracao import integrar_por_id
+from src.tratamento.limpeza import limpar_base_jogadores
 from src.tratamento.percentis import categoria_posicao
 from src.tratamento.por90 import (
 	ARQ_SOFASCORE,
@@ -40,6 +47,7 @@ ARQ_COBERTURA = settings.DIR_PROCESSED / "cobertura_metricas.csv"
 ARQ_DESCRITIVA = settings.DIR_PROCESSED / "descritiva_academias.csv"
 ARQ_KRUSKAL = settings.DIR_PROCESSED / "kruskal_wallis.csv"
 ARQ_PARES = settings.DIR_PROCESSED / "mann_whitney_bonferroni.csv"
+ARQ_CARREIRA = settings.DIR_PROCESSED / "carreira_jogadores.csv"
 DIR_GRAFICOS = settings.RAIZ / "reports" / "graficos"
 MIN_N_PERCENTIL_POSICAO = 5
 
@@ -118,8 +126,7 @@ def construir_indices(
 	if jogadores["player_id"].duplicated().any():
 		raise ValueError("A base validada contém player_id duplicados.")
 
-	base_jogadores = jogadores.copy()
-	base_jogadores["player_id"] = _id_inteiro(base_jogadores["player_id"])
+	base_jogadores = limpar_base_jogadores(jogadores)
 	base_jogadores["categoria"] = base_jogadores.apply(
 		lambda linha: categoria_posicao(linha.get("position", ""), linha.get("sub_position", "")), axis=1
 	)
@@ -141,8 +148,11 @@ def construir_indices(
 	if not registros_valores:
 		raise ValueError("Nenhuma variável de índice foi definida em config/metricas.yaml.")
 	valores_longos = pd.concat(registros_valores, ignore_index=True)
-	valores_longos = valores_longos.merge(
-		base_jogadores[["player_id", "categoria", "position"]], on="player_id", how="left", validate="many_to_one"
+	valores_longos = integrar_por_id(
+		valores_longos,
+		base_jogadores[["player_id", "categoria", "position"]],
+		how="left",
+		validate="many_to_one",
 	)
 
 	percentis = []
@@ -215,8 +225,13 @@ def executar_pipeline() -> dict[str, Path]:
 	if "formado_confirmado" in validos and not validos["formado_confirmado"].astype(str).str.lower().eq("sim").all():
 		raise ValueError("A base final contém jogadores sem formado_confirmado='sim'. Revise a seleção antes da análise.")
 
+	profissionais = gerar_base_profissionais()
+	profissionais.to_csv(ARQ_PROFISSIONAIS, index=False, encoding="utf-8-sig")
+
 	appearances = tabela_appearances(validos)
 	appearances.to_csv(SAIDA_APPEARANCES, index=False, encoding="utf-8-sig")
+	carreira = calcular_features_carreira(appearances, validos)
+	carreira.to_csv(ARQ_CARREIRA, index=False, encoding="utf-8-sig")
 	sofascore = tabela_sofascore()
 	if sofascore is None:
 		raise FileNotFoundError(f"Não foi possível gerar dados Sofascore; esperado {ARQ_SOFASCORE}.")
@@ -261,6 +276,8 @@ def executar_pipeline() -> dict[str, Path]:
 		"descritiva": ARQ_DESCRITIVA,
 		"kruskal": ARQ_KRUSKAL,
 		"pares": ARQ_PARES,
+		"carreira": ARQ_CARREIRA,
+		"profissionais": ARQ_PROFISSIONAIS,
 		"graficos": DIR_GRAFICOS,
 	}
 

@@ -95,13 +95,13 @@ def tabela_appearances(validos):
 # --------------------------------------------------------------------------
 # Parte 2: métricas do Sofascore
 # --------------------------------------------------------------------------
-def tabela_sofascore():
-    if not ARQ_SOFASCORE.exists():
-        print(f"Aviso: {ARQ_SOFASCORE.name} não existe ainda. "
+def tabela_sofascore(arquivo=ARQ_SOFASCORE):
+    if not arquivo.exists():
+        print(f"Aviso: {arquivo.name} não existe ainda. "
               "Pulei a parte do Sofascore (rode src.coleta.sofascore coletar).")
         return None
 
-    s = pd.read_csv(ARQ_SOFASCORE, encoding="utf-8-sig")
+    s = pd.read_csv(arquivo, encoding="utf-8-sig")
     chaves = ["id_tm", "temporada", "torneio"]
 
     # minutos de cada jogador naquele torneio e temporada
