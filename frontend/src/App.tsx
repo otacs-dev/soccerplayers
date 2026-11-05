@@ -56,6 +56,12 @@ function zoomRange(
   return [start, start + nextLength - 1]
 }
 
+function scatterDotRadius(visible: number, total: number): number {
+  if (total <= 0) return 2.25
+  const visibleRatio = Math.min(1, Math.max(0, visible / total))
+  return 5.5 - visibleRatio * 3.25
+}
+
 function chartDomain(values: number[], fallback: [number, number]): [number, number] {
   if (!values.length) return fallback
   const minimum = Math.min(...values)
@@ -326,11 +332,13 @@ function App() {
     }))
     .sort((a, b) => a.x - b.x)
   const visibleScoreData = scoreChartData.slice(scoreRange[0], scoreRange[1] + 1)
+  const scoreDotRadius = scatterDotRadius(visibleScoreData.length, scoreChartData.length)
   const professionalChartData = professionals
     .filter((player) => academy === 'Todas as academias' || player.clube === academy)
     .map((player) => ({ ...player, x: player.jogos_profissionais, y: player.minutos_profissionais }))
     .sort((a, b) => a.x - b.x || a.y - b.y)
   const visibleProfessionalData = professionalChartData.slice(professionalRange[0], professionalRange[1] + 1)
+  const professionalDotRadius = scatterDotRadius(visibleProfessionalData.length, professionalChartData.length)
   const hasHistoricalScores = professionals.some((player) => player.universo_indices === 'coorte_profissional')
   const scoreXDomain = chartDomain(visibleScoreData.map((item) => item.x), [0, 100])
   const scoreYDomain = chartDomain(visibleScoreData.map((item) => item.y), [0, 100])
@@ -408,7 +416,7 @@ function App() {
                 </div>
               </div>
               <div className="professional-legend score-legend">{Object.entries(colors).map(([name, color]) => <span key={name}><i style={{ backgroundColor: color }} />{labels[name]}</span>)}<span><i className="dot-example confirmed" />Base confirmada</span><span><i className="dot-example unconfirmed" />Formação não confirmada</span></div>
-              <div className="scatter-chart score-scatter"><ResponsiveContainer width="100%" height="100%"><ScatterChart data={scoreChartData} margin={{ top: 13, right: 16, bottom: 5, left: -14 }}><CartesianGrid stroke="#e9e9e2" strokeDasharray="3 5" /><XAxis type="number" dataKey="x" domain={scoreXDomain} ticks={[0, 25, 50, 75, 100]} allowDataOverflow axisLine={false} tickLine={false} tick={{ fill: '#929890', fontSize: 10 }} /><YAxis type="number" dataKey="y" domain={scoreYDomain} ticks={[0, 25, 50, 75, 100]} allowDataOverflow axisLine={false} tickLine={false} tick={{ fill: '#929890', fontSize: 10 }} /><Tooltip content={({ active, payload }) => active && payload?.length ? <div className="chart-tooltip"><strong>{payload[0].payload.nome}</strong><span>{labels[payload[0].payload.clube]} · {payload[0].payload.formacao_status === 'confirmada' ? 'base confirmada' : 'formação não confirmada'}</span><span>Técnico <b>{number(payload[0].payload.x)}</b> · cobertura {number(payload[0].payload.cobertura_tecnico * 100, 0)}%</span><span>Explosivo <b>{number(payload[0].payload.y)}</b> · cobertura {number(payload[0].payload.cobertura_explosivo * 100, 0)}%</span></div> : null} /><Scatter data={visibleScoreData} fill="#506c56">{visibleScoreData.map((entry) => <Cell key={`${entry.clube}-${entry.nome}`} fill={entry.formacao_status === 'confirmada' ? colors[entry.clube] : lightColors[entry.clube]} stroke={entry.formacao_status === 'confirmada' ? '#fff' : colors[entry.clube]} strokeWidth={entry.formacao_status === 'confirmada' ? 1 : 0.7} />)}</Scatter></ScatterChart></ResponsiveContainer></div>
+              <div className="scatter-chart score-scatter"><ResponsiveContainer width="100%" height="100%"><ScatterChart data={scoreChartData} margin={{ top: 13, right: 16, bottom: 5, left: -14 }}><CartesianGrid stroke="#e9e9e2" strokeDasharray="3 5" /><XAxis type="number" dataKey="x" domain={scoreXDomain} ticks={[0, 25, 50, 75, 100]} allowDataOverflow axisLine={false} tickLine={false} tick={{ fill: '#929890', fontSize: 10 }} /><YAxis type="number" dataKey="y" domain={scoreYDomain} ticks={[0, 25, 50, 75, 100]} allowDataOverflow axisLine={false} tickLine={false} tick={{ fill: '#929890', fontSize: 10 }} /><Tooltip content={({ active, payload }) => active && payload?.length ? <div className="chart-tooltip"><strong>{payload[0].payload.nome}</strong><span>{labels[payload[0].payload.clube]} · {payload[0].payload.formacao_status === 'confirmada' ? 'base confirmada' : 'formação não confirmada'}</span><span>Técnico <b>{number(payload[0].payload.x)}</b> · cobertura {number(payload[0].payload.cobertura_tecnico * 100, 0)}%</span><span>Explosivo <b>{number(payload[0].payload.y)}</b> · cobertura {number(payload[0].payload.cobertura_explosivo * 100, 0)}%</span></div> : null} /><Scatter data={visibleScoreData} shape={(props) => { const entry = visibleScoreData[props.index]; const confirmed = entry.formacao_status === 'confirmada'; return <circle cx={props.cx} cy={props.cy} r={scoreDotRadius} fill={confirmed ? colors[entry.clube] : lightColors[entry.clube]} stroke={confirmed ? '#fff' : colors[entry.clube]} strokeWidth={confirmed ? 1 : 0.7} /> }} /></ScatterChart></ResponsiveContainer></div>
               <div className="axis-caption"><span>ÍNDICE TÉCNICO</span><span>ÍNDICE EXPLOSIVO ↑</span><span>{visibleScoreData.length} de {scoreChartData.length}</span></div>
             </article>
           </section>
@@ -445,12 +453,7 @@ function App() {
                         <span>Explosivo <b>{player.indice_explosivo == null ? 'não calculado' : `${number(player.indice_explosivo)} · cobertura ${number((player.cobertura_explosivo ?? 0) * 100, 0)}%`}</b></span>
                       </div> : null
                     }} />
-                    <Scatter data={visibleProfessionalData} fill="#748477">
-                      {visibleProfessionalData.map((player) => {
-                        const confirmed = player.formacao_status === 'confirmada'
-                        return <Cell key={`${player.clube}-${player.player_id}`} fill={confirmed ? colors[player.clube] : lightColors[player.clube]} fillOpacity={confirmed ? 0.95 : 0.9} stroke={confirmed ? '#fffefa' : colors[player.clube]} strokeOpacity={confirmed ? 1 : 0.35} strokeWidth={confirmed ? 1.2 : 0.7} />
-                      })}
-                    </Scatter>
+                    <Scatter data={visibleProfessionalData} shape={(props) => { const player = visibleProfessionalData[props.index]; const confirmed = player.formacao_status === 'confirmada'; return <circle cx={props.cx} cy={props.cy} r={professionalDotRadius} fill={confirmed ? colors[player.clube] : lightColors[player.clube]} fillOpacity={confirmed ? 0.95 : 0.9} stroke={confirmed ? '#fffefa' : colors[player.clube]} strokeOpacity={confirmed ? 1 : 0.35} strokeWidth={confirmed ? 1.2 : 0.7} /> }} />
                   </ScatterChart>
                 </ResponsiveContainer>
               </div>
