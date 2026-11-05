@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { Activity, ArrowLeft, ArrowDown, ArrowUpRight, BookOpen, ChevronDown, CircleHelp, Code2, Database, Download, ExternalLink, FileBarChart, FileCode2, Filter, GraduationCap, LayoutDashboard, RotateCcw, Search, ShieldCheck, Users, ZoomIn, ZoomOut } from 'lucide-react'
 import { CartesianGrid, Cell, ComposedChart, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import Papa from 'papaparse'
@@ -31,6 +31,7 @@ type ProfessionalPlayer = {
 }
 type Summary = { academia: string; metrica: string; n: number; mediana: number; q1: number; q3: number }
 type TestResult = { metrica: string; p_value: number }
+type PlayerSearchScope = 'all' | 'confirmed' | 'unconfirmed'
 const colors: Record<string, string> = { Barcelona: '#d94b43', Liverpool: '#c53d48', 'Manchester City': '#3298ad', 'Real Madrid': '#d1a342' }
 const lightColors: Record<string, string> = { Barcelona: '#efd0cd', Liverpool: '#eed0d4', 'Manchester City': '#cde4e9', 'Real Madrid': '#eee3bd' }
 const labels: Record<string, string> = { Barcelona: 'Barcelona', Liverpool: 'Liverpool', 'Manchester City': 'Man. City', 'Real Madrid': 'Real Madrid' }
@@ -38,6 +39,11 @@ const academyLogos: Record<string, string> = { Barcelona: 'barcelona.svg', Liver
 const csv = <T,>(source: string) => Papa.parse<T>(source, { header: true, dynamicTyping: true, skipEmptyLines: true }).data
 const players = csv<Player>(indicesSource)
 const professionals = csv<ProfessionalPlayer>(professionalsSource)
+const professionalClubs = [...new Set(professionals.map((player) => player.clube))].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+const professionalClubCounts = professionals.reduce<Record<string, number>>((counts, player) => {
+  counts[player.clube] = (counts[player.clube] ?? 0) + 1
+  return counts
+}, {})
 const summaries = csv<Summary>(descriptiveSource)
 const tests = csv<TestResult>(kruskalSource)
 const number = (value: number, digits = 1) => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: digits }).format(value)
@@ -188,7 +194,7 @@ const projectSections = [
       ['data/interim/candidatos_formados.csv', 'Lista ampla de possíveis jogadores formados, preparada para conferência manual.'],
       ['data/interim/por90_*.csv', 'Métricas convertidas para uma escala comum por 90 minutos.'],
       ['data/processed/jogadores_validos.csv', 'Amostra final validada que alimenta as análises.'],
-      ['data/processed/jogadores_profissionais.csv', 'Resumo histórico de jogadores-clube desde 2012; formação não confirmada não é tratada como ausência de formação.'],
+      ['data/processed/jogadores_profissionais.csv', 'Resumo histórico de jogadores-clube desde 2012; base não confirmada não é tratada como ausência de passagem pela base.'],
       ['data/processed/percentis_metricas.csv', 'Percentis por métrica e grupo posicional usados na montagem dos índices.'],
       ['data/processed/indices_jogadores.csv', 'Índices técnico e explosivo, cobertura e dados de cada atleta.'],
       ['data/processed/descritiva_academias.csv', 'Tamanho dos grupos, medianas, quartis e extremos por academia.'],
@@ -310,15 +316,42 @@ function ProjectPage({ onBack }: { onBack: () => void }) {
 function App() {
   const [metric, setMetric] = useState<'indice_tecnico' | 'indice_explosivo'>('indice_tecnico')
   const [academy, setAcademy] = useState('Todas as academias')
+  const [baseOnly, setBaseOnly] = useState(false)
+  const [professionalClub, setProfessionalClub] = useState('Todos os clubes')
   const [query, setQuery] = useState('')
+  const [playerSearchScope, setPlayerSearchScope] = useState<PlayerSearchScope>('all')
   const [view, setView] = useState<'overview' | 'players' | 'methodology' | 'sources' | 'project'>('overview')
-  const [scoreRange, setScoreRange] = useState<[number, number]>([0, players.length - 1])
+  const [, startTransition] = useTransition()
+  const [scoreRange, setScoreRange] = useState<[number, number]>([0, professionals.length - 1])
   const [professionalRange, setProfessionalRange] = useState<[number, number]>([0, professionals.length - 1])
   const filtered = useMemo(() => players.filter((player) => academy === 'Todas as academias' || player.clube === academy)
     .filter((player) => player.nome.toLocaleLowerCase('pt-BR').includes(query.trim().toLocaleLowerCase('pt-BR')))
     .sort((a, b) => b[metric] - a[metric]), [academy, metric, query])
-  const scoreChartData = professionals
+  const professionalSearchResults = useMemo(() => {
+    const searchTerm = query.trim().toLocaleLowerCase('pt-BR')
+    return professionals
+      .filter((player) => professionalClub === 'Todos os clubes' || player.clube === professionalClub)
+      .filter((player) => playerSearchScope === 'all'
+        || (playerSearchScope === 'confirmed' && player.formacao_status === 'confirmada')
+        || (playerSearchScope === 'unconfirmed' && player.formacao_status === 'nao_confirmada'))
+      .filter((player) => !searchTerm || [
+        player.nome,
+        player.clube,
+        player.position,
+        player.sub_position,
+      ].some((value) => value?.toLocaleLowerCase('pt-BR').includes(searchTerm)))
+      .sort((a, b) => {
+        const scoreA = a[metric]
+        const scoreB = b[metric]
+        if (scoreA != null && scoreB != null && scoreA !== scoreB) return scoreB - scoreA
+        if (scoreA != null && scoreB == null) return -1
+        if (scoreA == null && scoreB != null) return 1
+        return a.nome.localeCompare(b.nome, 'pt-BR')
+      })
+  }, [metric, playerSearchScope, professionalClub, query])
+  const scoreChartData = useMemo(() => professionals
     .filter((player) => (academy === 'Todas as academias' || player.clube === academy)
+      && (!baseOnly || player.formacao_status === 'confirmada')
       && Number.isFinite(player.indice_tecnico)
       && Number.isFinite(player.indice_explosivo))
     .map((player) => ({
@@ -330,37 +363,60 @@ function App() {
       cobertura_tecnico: player.cobertura_tecnico,
       cobertura_explosivo: player.cobertura_explosivo,
     }))
-    .sort((a, b) => a.x - b.x)
-  const visibleScoreData = scoreChartData.slice(scoreRange[0], scoreRange[1] + 1)
+    .sort((a, b) => a.x - b.x), [academy, baseOnly])
+  const visibleScoreData = useMemo(() => scoreChartData.slice(scoreRange[0], scoreRange[1] + 1), [scoreChartData, scoreRange])
   const scoreDotRadius = scatterDotRadius(visibleScoreData.length, scoreChartData.length)
-  const professionalChartData = professionals
-    .filter((player) => academy === 'Todas as academias' || player.clube === academy)
+  const professionalChartData = useMemo(() => professionals
+    .filter((player) => (academy === 'Todas as academias' || player.clube === academy)
+      && (!baseOnly || player.formacao_status === 'confirmada'))
     .map((player) => ({ ...player, x: player.jogos_profissionais, y: player.minutos_profissionais }))
-    .sort((a, b) => a.x - b.x || a.y - b.y)
-  const visibleProfessionalData = professionalChartData.slice(professionalRange[0], professionalRange[1] + 1)
+    .sort((a, b) => a.x - b.x || a.y - b.y), [academy, baseOnly])
+  const visibleProfessionalData = useMemo(() => professionalChartData.slice(professionalRange[0], professionalRange[1] + 1), [professionalChartData, professionalRange])
   const professionalDotRadius = scatterDotRadius(visibleProfessionalData.length, professionalChartData.length)
   const hasHistoricalScores = professionals.some((player) => player.universo_indices === 'coorte_profissional')
-  const scoreXDomain = chartDomain(visibleScoreData.map((item) => item.x), [0, 100])
-  const scoreYDomain = chartDomain(visibleScoreData.map((item) => item.y), [0, 100])
-  const professionalXDomain = chartDomain(visibleProfessionalData.map((item) => item.x), [0, 1])
-  const professionalYDomain = chartDomain(visibleProfessionalData.map((item) => item.y), [0, 1])
-  const chartData = summaries.filter((row) => row.metrica === metric && (academy === 'Todas as academias' || row.academia === academy))
-  const scopedPlayers = players.filter((player) => academy === 'Todas as academias' || player.clube === academy)
+  const scoreXDomain = useMemo(() => chartDomain(visibleScoreData.map((item) => item.x), [0, 100]), [visibleScoreData])
+  const scoreYDomain = useMemo(() => chartDomain(visibleScoreData.map((item) => item.y), [0, 100]), [visibleScoreData])
+  const professionalXDomain = useMemo(() => chartDomain(visibleProfessionalData.map((item) => item.x), [0, 1]), [visibleProfessionalData])
+  const professionalYDomain = useMemo(() => chartDomain(visibleProfessionalData.map((item) => item.y), [0, 1]), [visibleProfessionalData])
+  const chartData = useMemo(() => summaries.filter((row) => row.metrica === metric && (academy === 'Todas as academias' || row.academia === academy)), [academy, metric])
+  const scopedPlayers = useMemo(() => players.filter((player) => academy === 'Todas as academias' || player.clube === academy), [academy])
   const pValue = tests.find((row) => row.metrica === metric)?.p_value ?? 0
-  const sortedScores = scopedPlayers.map((player) => player[metric]).sort((a, b) => a - b)
-  const middle = Math.floor(sortedScores.length / 2)
-  const median = sortedScores.length ? sortedScores.length % 2 ? sortedScores[middle] : (sortedScores[middle - 1] + sortedScores[middle]) / 2 : 0
+  const median = useMemo(() => {
+    const sortedScores = scopedPlayers.map((player) => player[metric]).sort((a, b) => a - b)
+    const middle = Math.floor(sortedScores.length / 2)
+    return sortedScores.length
+      ? sortedScores.length % 2
+        ? sortedScores[middle]
+        : (sortedScores[middle - 1] + sortedScores[middle]) / 2
+      : 0
+  }, [metric, scopedPlayers])
 
   function selectAcademy(nextAcademy: string) {
-    setAcademy(nextAcademy)
-    const scoresForAcademy = professionals.filter((player) =>
-      (nextAcademy === 'Todas as academias' || player.clube === nextAcademy)
-      && Number.isFinite(player.indice_tecnico)
-      && Number.isFinite(player.indice_explosivo))
-    const professionalsForAcademy = professionals.filter((player) =>
-      nextAcademy === 'Todas as academias' || player.clube === nextAcademy)
-    setScoreRange([0, Math.max(0, scoresForAcademy.length - 1)])
-    setProfessionalRange([0, Math.max(0, professionalsForAcademy.length - 1)])
+    startTransition(() => {
+      setAcademy(nextAcademy)
+      setBaseOnly(baseOnly)
+      const matchingProfessionals = professionals.filter((player) =>
+        (nextAcademy === 'Todas as academias' || player.clube === nextAcademy)
+        && (!baseOnly || player.formacao_status === 'confirmada'))
+      const matchingScores = matchingProfessionals.filter((player) =>
+        Number.isFinite(player.indice_tecnico) && Number.isFinite(player.indice_explosivo))
+      setScoreRange([0, Math.max(0, matchingScores.length - 1)])
+      setProfessionalRange([0, Math.max(0, matchingProfessionals.length - 1)])
+    })
+  }
+
+  function toggleBaseOnly() {
+    const nextBaseOnly = !baseOnly
+    const matchingProfessionals = professionals.filter((player) =>
+      (academy === 'Todas as academias' || player.clube === academy)
+      && (!nextBaseOnly || player.formacao_status === 'confirmada'))
+    const matchingScores = matchingProfessionals.filter((player) =>
+      Number.isFinite(player.indice_tecnico) && Number.isFinite(player.indice_explosivo))
+    startTransition(() => {
+      setBaseOnly(nextBaseOnly)
+      setScoreRange([0, Math.max(0, matchingScores.length - 1)])
+      setProfessionalRange([0, Math.max(0, matchingProfessionals.length - 1)])
+    })
   }
 
   function changeZoom(
@@ -369,15 +425,38 @@ function App() {
     total: number,
     factor: number,
   ) {
-    setRange(zoomRange(range, total, factor))
+    startTransition(() => setRange(zoomRange(range, total, factor)))
   }
 
   function exportCsv() {
-    const data = Papa.unparse(filtered.map(({ nome, clube, categoria, indice_tecnico, indice_explosivo, minutos }) => ({ nome, academia: clube, posicao: categoria, indice_tecnico, indice_explosivo, minutos })))
+    const rows: Record<string, string | number | null>[] = view === 'players'
+      ? professionalSearchResults.map((player) => ({
+        player_id: player.player_id,
+        nome: player.nome,
+        clube: player.clube,
+        formacao_status: player.formacao_status,
+        position: player.position,
+        sub_position: player.sub_position,
+        indice_tecnico: player.indice_tecnico,
+        cobertura_tecnico: player.cobertura_tecnico,
+        indice_explosivo: player.indice_explosivo,
+        cobertura_explosivo: player.cobertura_explosivo,
+        jogos_profissionais: player.jogos_profissionais,
+        minutos_profissionais: player.minutos_profissionais,
+      }))
+      : filtered.map(({ nome, clube, categoria, indice_tecnico, indice_explosivo, minutos }) => ({
+        nome,
+        academia: clube,
+        posicao: categoria,
+        indice_tecnico,
+        indice_explosivo,
+        minutos,
+      }))
+    const data = Papa.unparse(rows)
     const url = URL.createObjectURL(new Blob([data], { type: 'text/csv;charset=utf-8;' }))
     const link = document.createElement('a')
     link.href = url
-    link.download = 'jogadores-academias.csv'
+    link.download = view === 'players' ? 'jogadores-profissionais-filtrados.csv' : 'jogadores-academias.csv'
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -388,10 +467,10 @@ function App() {
       <div className="sidebar-label">ANÁLISE</div>
       <nav className="side-nav" aria-label="Navegação">
         <button className={view === 'overview' ? 'nav-item active' : 'nav-item'} onClick={() => setView('overview')}><LayoutDashboard size={17} /> Visão geral</button>
-        <button className={view === 'players' ? 'nav-item active' : 'nav-item'} onClick={() => setView('players')}><Users size={17} /> Jogadores <span className="nav-count">{filtered.length}</span></button>
+        <button className={view === 'players' ? 'nav-item active' : 'nav-item'} onClick={() => setView('players')}><Users size={17} /> Jogadores <span className="nav-count">{view === 'players' ? professionalSearchResults.length : filtered.length}</span></button>
       </nav>
       <div className="sidebar-label academies-label">ACADEMIAS</div>
-      <div className="academy-list">{Object.keys(colors).map((name) => <button key={name} className={academy === name ? 'academy-link selected' : 'academy-link'} onClick={() => selectAcademy(academy === name ? 'Todas as academias' : name)} title={`${name}: ${professionals.filter((player) => player.clube === name).length} vínculos profissionais observados`} aria-label={`Filtrar por ${name}`} aria-pressed={academy === name}><span className="academy-logo-wrap"><img className="academy-logo" src={`/logos/${academyLogos[name]}`} alt="" /></span><span>{name}</span><small>{professionals.filter((player) => player.clube === name).length}</small></button>)}</div>
+      <div className="academy-list">{Object.keys(colors).map((name) => <button key={name} className={academy === name ? 'academy-link selected' : 'academy-link'} onClick={() => selectAcademy(academy === name ? 'Todas as academias' : name)} title={`${name}: ${professionalClubCounts[name] ?? 0} vínculos profissionais observados`} aria-label={`Filtrar por ${name}`} aria-pressed={academy === name}><span className="academy-logo-wrap"><img className="academy-logo" src={`/logos/${academyLogos[name]}`} alt="" /></span><span>{name}</span><small>{professionalClubCounts[name] ?? 0}</small></button>)}</div>
       <div className="sidebar-bottom"><button className="season-chip" onClick={() => setView('sources')} title="Ver fontes da pesquisa" aria-label="Ver fontes da pesquisa"><Database size={14} /> <span>FONTES DA PESQUISA</span><ArrowUpRight size={13} /></button><div className="project-credit"><GraduationCap size={16} /><span>Projeto Integrador<br /><strong>Ciência de Dados · FATEC</strong></span></div></div>
     </aside>
 
@@ -400,7 +479,7 @@ function App() {
       <div className="page-wrap">
         <section className={view === 'overview' || view === 'players' ? 'page-heading' : 'page-heading hidden'}><div><div className="eyebrow"><i /> FUTEBOL · DESENVOLVIMENTO DE TALENTOS</div><h1>{view === 'overview' ? <>O que forma<br /><em>um jogador?</em></> : <>Talentos<br /><em>revelados.</em></>}</h1><p className="intro">Uma leitura comparativa dos atletas revelados por quatro das principais academias europeias.</p></div><aside className="heading-aside"><div>ESTUDO <span>01 / 04</span></div><i /><p>Associação observada.<br /><strong>Causalidade não inferida.</strong></p></aside></section>
 
-        <section className={view === 'overview' || view === 'players' ? 'control-row' : 'control-row hidden'}><div className="view-toggle" role="group" aria-label="Índice"><button className={metric === 'indice_tecnico' ? 'toggle-option selected' : 'toggle-option'} onClick={() => setMetric('indice_tecnico')}><b>T</b> Técnico</button><button className={metric === 'indice_explosivo' ? 'toggle-option selected' : 'toggle-option'} onClick={() => setMetric('indice_explosivo')}><b>E</b> Explosivo</button></div><div className="filter-group"><span><Filter size={13} /> FILTROS</span><label className="select-wrap"><span className="sr-only">Filtrar por academia</span><select value={academy} onChange={(event) => selectAcademy(event.target.value)}><option>Todas as academias</option>{Object.keys(colors).map((name) => <option key={name}>{name}</option>)}</select><ChevronDown size={14} /></label><button className="export-button" onClick={exportCsv} title="Exportar jogadores"><Download size={15} /><span>Exportar</span></button></div></section>
+        <section className={view === 'overview' || view === 'players' ? 'control-row' : 'control-row hidden'}><div className="view-toggle" role="group" aria-label="Índice"><button className={metric === 'indice_tecnico' ? 'toggle-option selected' : 'toggle-option'} onClick={() => setMetric('indice_tecnico')}><b>T</b> Técnico</button><button className={metric === 'indice_explosivo' ? 'toggle-option selected' : 'toggle-option'} onClick={() => setMetric('indice_explosivo')}><b>E</b> Explosivo</button></div><div className="filter-group"><span><Filter size={13} /> FILTROS</span><label className="select-wrap"><span className="sr-only">{view === 'players' ? 'Filtrar profissionais por clube' : 'Filtrar a amostra por academia'}</span><select value={view === 'players' ? professionalClub : academy} onChange={(event) => view === 'players' ? setProfessionalClub(event.target.value) : selectAcademy(event.target.value)}>{view === 'players' ? <><option>Todos os clubes</option>{professionalClubs.map((name) => <option key={name}>{name}</option>)}</> : <><option>Todas as academias</option>{Object.keys(colors).map((name) => <option key={name}>{name}</option>)}</>}</select><ChevronDown size={14} /></label>{view === 'overview' && <button className={baseOnly ? 'base-filter-button selected' : 'base-filter-button'} onClick={toggleBaseOnly} aria-pressed={baseOnly} title={academy === 'Todas as academias' ? 'Filtrar os gráficos para atletas com base confirmada em qualquer academia' : 'Filtrar os gráficos para atletas com base confirmada neste clube'}><GraduationCap size={14} /><span>{baseOnly ? 'Mostrando só atletas da base' : 'Só atletas da base'}</span></button>}<button className="export-button" onClick={exportCsv} title="Exportar resultados filtrados"><Download size={15} /><span>Exportar</span></button></div></section>
 
         {view === 'project' ? <ProjectPage onBack={() => setView('overview')} /> : view === 'sources' ? <SourcesPage onBack={() => setView('overview')} /> : view === 'methodology' ? <MethodologyPage onBack={() => setView('overview')} /> : view === 'overview' ? <>
           <section className="stats-grid"><article className="stat-block"><div className="stat-top">ATLETAS NA AMOSTRA <Users size={16} /></div><div className="stat-value">{scopedPlayers.length}<span> atletas</span></div><div className="stat-foot">{academy === 'Todas as academias' ? 'Quatro academias observadas' : academy}</div></article><article className="stat-block"><div className="stat-top">MEDIANA DO ÍNDICE <Activity size={15} /></div><div className="stat-value">{number(median)}<span> / 100</span></div><div className="stat-foot">Perfil {metric === 'indice_tecnico' ? 'técnico' : 'explosivo'}</div></article><article className="stat-block"><div className="stat-top">MINUTOS ANALISADOS <GraduationCap size={16} /></div><div className="stat-value">{number(scopedPlayers.reduce((sum, player) => sum + (player.minutos || 0), 0) / 1000, 0)}<span> mil</span></div><div className="stat-foot">Equipes principais</div></article><article className="stat-block"><div className="stat-top">KRUSKAL–WALLIS <ShieldCheck size={16} /></div><div className="stat-value">p = {number(pValue, 3)}</div><div className="stat-foot"><span className="status-pill">Sem diferença significativa</span></div></article></section>
@@ -415,14 +494,14 @@ function App() {
                   <button onClick={() => setScoreRange([0, Math.max(0, scoreChartData.length - 1)])} title="Redefinir zoom" aria-label="Redefinir zoom"><RotateCcw size={14} /></button>
                 </div>
               </div>
-              <div className="professional-legend score-legend">{Object.entries(colors).map(([name, color]) => <span key={name}><i style={{ backgroundColor: color }} />{labels[name]}</span>)}<span><i className="dot-example confirmed" />Base confirmada</span><span><i className="dot-example unconfirmed" />Formação não confirmada</span></div>
-              <div className="scatter-chart score-scatter"><ResponsiveContainer width="100%" height="100%"><ScatterChart data={scoreChartData} margin={{ top: 13, right: 16, bottom: 5, left: -14 }}><CartesianGrid stroke="#e9e9e2" strokeDasharray="3 5" /><XAxis type="number" dataKey="x" domain={scoreXDomain} ticks={[0, 25, 50, 75, 100]} allowDataOverflow axisLine={false} tickLine={false} tick={{ fill: '#929890', fontSize: 10 }} /><YAxis type="number" dataKey="y" domain={scoreYDomain} ticks={[0, 25, 50, 75, 100]} allowDataOverflow axisLine={false} tickLine={false} tick={{ fill: '#929890', fontSize: 10 }} /><Tooltip content={({ active, payload }) => active && payload?.length ? <div className="chart-tooltip"><strong>{payload[0].payload.nome}</strong><span>{labels[payload[0].payload.clube]} · {payload[0].payload.formacao_status === 'confirmada' ? 'base confirmada' : 'formação não confirmada'}</span><span>Técnico <b>{number(payload[0].payload.x)}</b> · cobertura {number(payload[0].payload.cobertura_tecnico * 100, 0)}%</span><span>Explosivo <b>{number(payload[0].payload.y)}</b> · cobertura {number(payload[0].payload.cobertura_explosivo * 100, 0)}%</span></div> : null} /><Scatter data={visibleScoreData} shape={(props) => { const entry = visibleScoreData[props.index]; const confirmed = entry.formacao_status === 'confirmada'; return <circle cx={props.cx} cy={props.cy} r={scoreDotRadius} fill={confirmed ? colors[entry.clube] : lightColors[entry.clube]} stroke={confirmed ? '#fff' : colors[entry.clube]} strokeWidth={confirmed ? 1 : 0.7} /> }} /></ScatterChart></ResponsiveContainer></div>
+              <div className="professional-legend score-legend">{Object.entries(colors).map(([name, color]) => <span key={name}><i style={{ backgroundColor: color }} />{labels[name]}</span>)}<span><i className="dot-example confirmed" />Base confirmada</span><span><i className="dot-example unconfirmed" />Base não confirmada</span></div>
+              <div className="scatter-chart score-scatter"><ResponsiveContainer width="100%" height="100%"><ScatterChart data={scoreChartData} margin={{ top: 13, right: 16, bottom: 5, left: -14 }}><CartesianGrid stroke="#e9e9e2" strokeDasharray="3 5" /><XAxis type="number" dataKey="x" domain={scoreXDomain} ticks={[0, 25, 50, 75, 100]} allowDataOverflow axisLine={false} tickLine={false} tick={{ fill: '#929890', fontSize: 10 }} /><YAxis type="number" dataKey="y" domain={scoreYDomain} ticks={[0, 25, 50, 75, 100]} allowDataOverflow axisLine={false} tickLine={false} tick={{ fill: '#929890', fontSize: 10 }} /><Tooltip content={({ active, payload }) => active && payload?.length ? <div className="chart-tooltip"><strong>{payload[0].payload.nome}</strong><span>{labels[payload[0].payload.clube]} · {payload[0].payload.formacao_status === 'confirmada' ? 'base confirmada' : 'base não confirmada'}</span><span>Técnico <b>{number(payload[0].payload.x)}</b> · cobertura {number(payload[0].payload.cobertura_tecnico * 100, 0)}%</span><span>Explosivo <b>{number(payload[0].payload.y)}</b> · cobertura {number(payload[0].payload.cobertura_explosivo * 100, 0)}%</span></div> : null} /><Scatter data={visibleScoreData} isAnimationActive={false} shape={(props) => { const entry = visibleScoreData[props.index]; if (!entry) return null; const confirmed = entry.formacao_status === 'confirmada'; return <circle cx={props.cx} cy={props.cy} r={scoreDotRadius} fill={confirmed ? colors[entry.clube] : lightColors[entry.clube]} stroke={confirmed ? '#fff' : colors[entry.clube]} strokeWidth={confirmed ? 1 : 0.7} /> }} /></ScatterChart></ResponsiveContainer></div>
               <div className="axis-caption"><span>ÍNDICE TÉCNICO</span><span>ÍNDICE EXPLOSIVO ↑</span><span>{visibleScoreData.length} de {scoreChartData.length}</span></div>
             </article>
           </section>
           <section className="professional-section">
             <article className="panel professional-panel">
-              <div className="panel-heading"><div><small>TRAJETÓRIA PROFISSIONAL · DADOS OBSERVADOS DESDE 2012</small><h2>Formados confirmados e demais profissionais</h2><p className="panel-subtitle">Cada ponto representa um jogador-clube. O tom claro indica formação não confirmada; não significa que o atleta não veio da base. Este recorte não é o elenco atual.</p></div>
+              <div className="panel-heading"><div><small>TRAJETÓRIA PROFISSIONAL · DADOS OBSERVADOS DESDE 2012</small><h2>Formados confirmados e demais profissionais</h2><p className="panel-subtitle">Cada ponto representa um jogador-clube. “Base não confirmada” indica ausência de confirmação nos dados, não que o atleta não veio da base. Este recorte não é o elenco atual.</p></div>
                 <div className="zoom-controls" role="group" aria-label="Controles de zoom do gráfico profissional">
                   <button onClick={() => changeZoom(professionalRange, setProfessionalRange, professionalChartData.length, 0.65)} title="Aproximar" aria-label="Aproximar gráfico"><ZoomIn size={15} /></button>
                   <button onClick={() => changeZoom(professionalRange, setProfessionalRange, professionalChartData.length, 1 / 0.65)} title="Afastar" aria-label="Afastar gráfico"><ZoomOut size={15} /></button>
@@ -431,7 +510,7 @@ function App() {
               </div>
               <div className="professional-legend">
                 {Object.entries(colors).map(([name, color]) => <span key={name}><i style={{ backgroundColor: color }} />{labels[name]}</span>)}
-                <span><i className="dot-example confirmed" />Base confirmada</span><span><i className="dot-example unconfirmed" />Não confirmado</span>
+                <span><i className="dot-example confirmed" />Base confirmada</span><span><i className="dot-example unconfirmed" />Base não confirmada</span>
                 <strong>{professionalChartData.length} vínculos jogador-clube</strong>
               </div>
               <div className="professional-chart">
@@ -448,12 +527,12 @@ function App() {
                         <span>Anos observados <b>{player.ano_primeira_aparicao}–{player.ano_ultima_aparicao}</b></span>
                         <span>Jogos <b>{number(player.jogos_profissionais, 0)}</b></span>
                         <span>Minutos <b>{number(player.minutos_profissionais, 0)}</b></span>
-                        <span>Formação <b>{player.formacao_status === 'confirmada' ? 'confirmada' : 'não confirmada'}</b></span>
+                        <span>Base <b>{player.formacao_status === 'confirmada' ? 'confirmada' : 'não confirmada'}</b></span>
                         <span>Técnico <b>{player.indice_tecnico == null ? 'não calculado' : `${number(player.indice_tecnico)} · cobertura ${number((player.cobertura_tecnico ?? 0) * 100, 0)}%`}</b></span>
                         <span>Explosivo <b>{player.indice_explosivo == null ? 'não calculado' : `${number(player.indice_explosivo)} · cobertura ${number((player.cobertura_explosivo ?? 0) * 100, 0)}%`}</b></span>
                       </div> : null
                     }} />
-                    <Scatter data={visibleProfessionalData} shape={(props) => { const player = visibleProfessionalData[props.index]; const confirmed = player.formacao_status === 'confirmada'; return <circle cx={props.cx} cy={props.cy} r={professionalDotRadius} fill={confirmed ? colors[player.clube] : lightColors[player.clube]} fillOpacity={confirmed ? 0.95 : 0.9} stroke={confirmed ? '#fffefa' : colors[player.clube]} strokeOpacity={confirmed ? 1 : 0.35} strokeWidth={confirmed ? 1.2 : 0.7} /> }} />
+                    <Scatter data={visibleProfessionalData} isAnimationActive={false} shape={(props) => { const player = visibleProfessionalData[props.index]; if (!player) return null; const confirmed = player.formacao_status === 'confirmada'; return <circle cx={props.cx} cy={props.cy} r={professionalDotRadius} fill={confirmed ? colors[player.clube] : lightColors[player.clube]} fillOpacity={confirmed ? 0.95 : 0.9} stroke={confirmed ? '#fffefa' : colors[player.clube]} strokeOpacity={confirmed ? 1 : 0.35} strokeWidth={confirmed ? 1.2 : 0.7} /> }} />
                   </ScatterChart>
                 </ResponsiveContainer>
               </div>
@@ -462,7 +541,53 @@ function App() {
             </article>
           </section>
           <section className="bottom-grid"><article className="panel ranking-panel"><div className="panel-heading"><div><small>DESTAQUES DA AMOSTRA</small><h2>Maiores índices</h2></div><button className="text-action" onClick={() => setView('players')}>Ver todos <ArrowUpRight size={14} /></button></div>{filtered.slice(0, 4).map((player, index) => <div className="ranking-row" key={player.nome}><span className="rank-number">0{index + 1}</span><span className="rank-name">{player.nome}<small>{player.categoria.replaceAll('_', ' ')}</small></span><span className="rank-club"><i style={{ backgroundColor: colors[player.clube] }} />{labels[player.clube]}</span><strong>{number(player[metric])}</strong></div>)}</article><article className="method-note"><div className="method-top"><CircleHelp size={17} /> LEITURA DO ESTUDO</div><h3>Um retrato, não uma sentença.</h3><p>Os resultados comparam os jogadores observados. Não demonstram que a academia causou o desempenho.</p><div className="method-result">Teste global sem significância<br /><strong>p &gt; 0,05 nos dois perfis</strong></div></article></section>
-        </> : <section className="panel players-panel"><div className="panel-heading players-heading"><div><small>AMOSTRA VALIDADA</small><h2>Jogadores formados</h2><p>{filtered.length} atletas · ordenados pelo índice {metric === 'indice_tecnico' ? 'técnico' : 'explosivo'}</p></div><label className="search-box"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar jogador" /></label></div><div className="table-wrap"><table><thead><tr><th>JOGADOR</th><th>ACADEMIA</th><th>POSIÇÃO</th><th>ÍNDICE TÉCNICO</th><th>ÍNDICE EXPLOSIVO</th><th>MINUTOS</th><th /></tr></thead><tbody>{filtered.map((player) => <tr key={player.nome}><td><strong>{player.nome}</strong></td><td><span className="table-club"><i style={{ backgroundColor: colors[player.clube] }} />{player.clube}</span></td><td>{player.categoria.replaceAll('_', ' ')}</td><td>{number(player.indice_tecnico)}</td><td>{number(player.indice_explosivo)}</td><td>{number(player.minutos, 0)}</td><td><a href={player.url} target="_blank" rel="noreferrer" aria-label={`Perfil de ${player.nome}`}><ArrowUpRight size={15} /></a></td></tr>)}</tbody></table>{!filtered.length && <div className="empty-state">Nenhum jogador encontrado.</div>}</div></section>}
+        </> : <section className="panel players-panel">
+          <div className="panel-heading players-heading">
+            <div>
+              <small>BUSCA NA COORTE PROFISSIONAL</small>
+              <h2>Buscar atletas</h2>
+              <p>{professionalSearchResults.length} vínculos jogador-clube · ordenados por índice {metric === 'indice_tecnico' ? 'técnico' : 'explosivo'} quando disponível</p>
+            </div>
+            <div className="player-search-controls">
+              <label className="search-box">
+                <Search size={16} aria-hidden="true" />
+                <span className="sr-only">Buscar atleta por nome, clube ou posição</span>
+                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nome, clube ou posição" />
+              </label>
+              <label className="select-wrap player-scope-select">
+                <span className="sr-only">Filtrar por situação da formação</span>
+                <select value={playerSearchScope} onChange={(event) => {
+                  const value = event.target.value
+                  setPlayerSearchScope(value === 'confirmed' || value === 'unconfirmed' ? value : 'all')
+                }}>
+                  <option value="all">Todos: base e profissionais</option>
+                  <option value="confirmed">Base confirmada</option>
+                  <option value="unconfirmed">Base não confirmada</option>
+                </select>
+                <ChevronDown size={14} aria-hidden="true" />
+              </label>
+            </div>
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>JOGADOR</th><th>CLUBE</th><th>BASE</th><th>POSIÇÃO</th><th>ÍNDICE TÉCNICO</th><th>ÍNDICE EXPLOSIVO</th><th>JOGOS</th><th>MINUTOS</th><th /></tr></thead>
+              <tbody>{professionalSearchResults.map((player, index) => (
+                <tr key={`${player.player_id}-${player.clube}-${index}`}>
+                  <td><strong>{player.nome}</strong></td>
+                  <td><span className="table-club"><i style={{ backgroundColor: colors[player.clube] ?? '#8a978c' }} />{player.clube}</span></td>
+                  <td>{player.formacao_status === 'confirmada' ? 'Confirmada' : 'Não confirmada'}</td>
+                  <td>{[player.position, player.sub_position].filter(Boolean).join(' · ') || '—'}</td>
+                  <td>{player.indice_tecnico == null ? '—' : `${number(player.indice_tecnico)} · ${number((player.cobertura_tecnico ?? 0) * 100, 0)}%`}</td>
+                  <td>{player.indice_explosivo == null ? '—' : `${number(player.indice_explosivo)} · ${number((player.cobertura_explosivo ?? 0) * 100, 0)}%`}</td>
+                  <td>{number(player.jogos_profissionais, 0)}</td>
+                  <td>{number(player.minutos_profissionais, 0)}</td>
+                  <td><a href={player.url} target="_blank" rel="noreferrer" aria-label={`Perfil de ${player.nome}`}><ArrowUpRight size={15} /></a></td>
+                </tr>
+              ))}</tbody>
+            </table>
+            {!professionalSearchResults.length && <div className="empty-state">Nenhum atleta encontrado com esses filtros.</div>}
+          </div>
+        </section>}
         <footer className="page-footer"><span>FONTE: BASE CONSOLIDADA DO ESTUDO · 2026</span><span>ANÁLISE DESCRITIVA E NÃO PARAMÉTRICA</span></footer>
       </div>
     </main>
