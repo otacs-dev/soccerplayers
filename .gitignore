@@ -5,3 +5,4 @@ data/interim/*
 .env
 __pycache__/
 .venv/
+data/processed/formacao_jogadores.sqlite3

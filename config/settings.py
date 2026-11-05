@@ -83,6 +83,3 @@ MIN_RECOMENDADO_POR_CLUBE = 6
 # tamanho amostral e não como corte duro do estudo.
 INICIO_COBERTURA = "2013-01-01"
 
-
-
-

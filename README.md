@@ -65,10 +65,10 @@ As métricas de cada índice estão em `config/metricas.yaml` e foram **definida
 
 | Fonte | Uso | Observação |
 |---|---|---|
-| `transfermarkt-datasets` (GitHub/Kaggle) | Jogadores, posições, aparições, valores, transferências | Pode não trazer o clube formador pronto; conferir as colunas reais |
+| [`davidcariboo/player-scores`](https://www.kaggle.com/datasets/davidcariboo/player-scores) (Kaggle) | Jogadores, posições, aparições, valores, transferências | Baixar `players.csv`, `appearances.csv` e `transfers.csv` para `data/raw/`; conferir os campos e a licença vigentes |
 | Páginas do Transfermarkt e Wikipédia | Histórico de base (clube formador, anos na base, estreia) | Preenchimento manual em `data/manual/` |
-| FBref | Dados básicos: jogos, minutos, gols, assistências | Perdeu as estatísticas avançadas (xG, passes progressivos); usamos só o básico |
-| Sofascore | Estatísticas por temporada (passes, dribles, duelos) | IDs dos 35 jogadores mapeados em `data/manual/ids_sofascore.csv`. Coleta direta via `curl_cffi` |
+| FBref | Referência externa para consulta de estatísticas | Não é fonte dos resultados atuais; jogos, minutos, gols e assistências vêm de `appearances.csv` do dataset Kaggle |
+| Sofascore | Estatísticas por temporada (passes, dribles, duelos) | Importadas de snapshots locais autorizados; IDs Transfermarkt conferidos pelo grupo |
 
 Respeite os termos de uso de cada fonte e mantenha a identificação da origem dos dados.
 
@@ -77,8 +77,8 @@ Respeite os termos de uso de cada fonte e mantenha a identificação da origem d
 ## Metodologia
 
 1. **Padronização por 90 minutos:** `métrica ÷ minutos × 90`, para comparar quem jogou mais com quem jogou menos.
-2. **Percentil dentro da posição** (e da liga e temporada, quando possível). Os jogadores são agrupados em seis categorias: goleiro, zagueiro, lateral, meio-campista defensivo/central, meia ofensivo/ponta e centroavante.
-3. **Índices técnico e explosivo:** média dos percentis das métricas de cada grupo, de 0 a 100.
+2. **Percentil dentro da posição** (e da liga e temporada, quando possível). Os jogadores são agrupados em seis categorias: goleiro, zagueiro, lateral, meio-campista defensivo/central, meia ofensivo/ponta (inclui meias laterais) e centroavante (inclui segundo atacante). Quando uma categoria tem menos de cinco jogadores, o pipeline recorre ao grupo da posição ampla; se esse grupo ainda for pequeno, emite um aviso e mantém os dados, sem afirmar que o mínimo foi atingido.
+3. **Índices técnico e explosivo:** média ponderada dos percentis das métricas de cada grupo, de 0 a 100. Os pesos são definidos previamente em `config/metricas.yaml`; quando há métricas ausentes, o índice usa os pesos disponíveis e só é publicado com cobertura mínima de 50%.
 4. **Estatística descritiva por academia:** contagem (n), mediana, quartis e proporções por posição.
 5. **Testes de comparação** (não paramétricos, nível de significância de 0,05):
    - **Kruskal-Wallis** compara as quatro academias de uma vez.
@@ -94,26 +94,25 @@ A integração entre fontes usa o **identificador do Transfermarkt como chave**,
 ## Estrutura do repositório
 
 ```
-# caminhos, lista de clubes, ano inicial
-# métricas de cada índice
-# categorias posicionais
-# dados brutos das fontes
-# dados intermediários do pipeline
-# base padronizada
-# jogadores_validos.csv, metodos_academias.csv
-# tabelas
-# views de análise
-# contagem de ausentes por métrica e jogador
-# conexão com o banco
-# limpeza, integracao, por90, percentis
-# indices, trajetoria, carreira
-# descritiva, testes, efeito, correlacao
-# metodos_academias
-# graficos, dashboard
-# test_por90, test_percentis, test_indice
-# executa o pipeline na ordem
-'''
-
+config/                 parâmetros, posições e pesos das métricas
+data/
+  raw/                  arquivos originais (não versionados)
+  interim/              dados intermediários e snapshots importados
+  manual/               seleção revisada e registros qualitativos
+  processed/            resultados analíticos e banco SQLite local
+frontend/               aplicação React/TypeScript
+notebooks/              exploração e apresentação dos resultados
+reports/graficos/       gráficos exportados
+sql/                    esquema, consultas e verificações SQLite
+src/
+  coleta/               leitura de dados e importação de snapshots
+  tratamento/           limpeza, integração, taxas por 90 e posições
+  features/             carreira e trajetória
+  analise/              índices, estatística e comparações
+  visual/               gráficos e dashboard
+tests/                  testes automatizados
+run_pipeline.py         execução do pipeline analítico
+```
 
 ### Modelo de dados
 
@@ -137,18 +136,16 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 # 3. dependências
 pip install -r requirements.txt
 
-# 4. variáveis de ambiente
-cp .env.example .env             # ajuste se necessário
+# 4. dados de entrada
+# Baixe https://www.kaggle.com/datasets/davidcariboo/player-scores
+# e coloque players.csv, appearances.csv e transfers.csv em data/raw/.
+# Prepare também um snapshot local autorizado com o formato documentado abaixo.
+python -m src.coleta.sofascore importar caminho/para/snapshot.csv
 
-# 5. coleta e processamento
-# Coleta dos IDs e estatísticas do Sofascore (opcional):
-# O arquivo data/manual/ids_sofascore.csv já possui os 35 jogadores válidos mapeados.
-python -m src.coleta.sofascore coletar
-
-# 6. pipeline completo
+# 5. pipeline completo
 python run_pipeline.py
 
-# 7. criar/atualizar o banco SQLite com os CSVs processados
+# 6. criar/atualizar o banco SQLite com os CSVs processados
 python -m src.db
 ```
 
@@ -158,31 +155,37 @@ Execute sempre a partir da **raiz do projeto**, para os imports `src.…` funcio
 python -m pytest
 ```
 
+O snapshot deve ser um CSV local autorizado com as colunas `id_tm`, `temporada`, `torneio`, `metrica` e `valor`. `id_tm` é o ID Transfermarkt conferido no projeto; cada combinação jogador-temporada-torneio-métrica deve aparecer uma única vez. Para alimentar a coorte histórica, use `--destino profissionais`; para a amostra original, o destino padrão é `amostra`:
+
+```bash
+python -m src.coleta.sofascore importar caminho/para/snapshot.csv --destino profissionais
+```
+
+O importador valida e grava o arquivo em `data/interim/`; ele não busca IDs, não acessa serviços externos e não contorna controles de acesso. A proveniência e a autorização do snapshot devem ser mantidas pelo grupo.
+
 ### Banco SQLite
 
-Os scripts em `sql/` criam as tabelas, índices, views e consultas de qualidade. Depois de executar o pipeline, carregue os dados processados no banco local com:
+O SQLite é a camada relacional consultável do trabalho: organiza jogadores, academias, formação, métricas sazonais e índices, permitindo explorar os resultados com SQL em ferramentas como DB Browser for SQLite e executar as views e verificações de qualidade. Os scripts em `sql/` definem o esquema, índices, views e consultas. Depois de executar o pipeline, carregue os dados processados no banco local com:
 
 ```bash
 python -m src.db
 ```
 
-O arquivo `data/processed/formacao_jogadores.sqlite3` é criado ou atualizado a partir dos CSVs de `data/processed/` e `data/interim/`. Para conferir a qualidade no SQLite, execute as consultas de `sql/04_qualidade_dados.sql`; as consultas de inconsistência devem retornar zero linhas.
+O arquivo `data/processed/formacao_jogadores.sqlite3` é criado ou atualizado a partir dos CSVs de `data/processed/` e `data/interim/`. Ele é um artefato local regenerável e fica fora do Git; assim, o repositório mantém o esquema e as consultas SQL, sem acumular cópias binárias do banco. Para conferir a qualidade, execute `sql/04_qualidade_dados.sql`; as consultas de inconsistência devem retornar zero linhas. Recrie o banco com `python -m src.db` sempre que atualizar os CSVs.
 
 Na carga atual, o banco contém os **35 jogadores analisados** (Barcelona: 15; Liverpool: 8; Manchester City: 7; Real Madrid: 5), seus índices e 436 percentis, além de cobertura de métricas, estatísticas descritivas, testes estatísticos e 78.445 estatísticas sazonais. Isso representa a amostra analisada, não o elenco completo atual desses clubes. As tabelas analíticas estão definidas em `sql/01_schema.sql`; as views de consulta ficam em `sql/03_views.sql`.
 
 Há também uma base separada para a comparação histórica de profissionais: gere `data/processed/jogadores_profissionais.csv` com `python -m src.analise.jogadores_profissionais` e depois rode `python -m src.db` para carregá-la na tabela `jogador_profissional` e na view `vw_jogadores_profissionais`. Ela reúne 580 vínculos jogador-clube (559 jogadores únicos) observados entre 2012 e 2026 nos arquivos disponíveis; alguns jogadores atuaram por mais de um dos clubes. “Formação confirmada” marca somente os 35 atletas revisados manualmente; os demais estão como “não confirmada”, não como “não formados”.
 
-No momento, os índices técnico/explosivo comparáveis estão disponíveis para os 35 atletas da amostra original. Para ampliar a coleta e recalcular os índices posicionais em toda a coorte histórica, execute os comandos abaixo na raiz do projeto:
+No momento, os índices técnico/explosivo comparáveis estão disponíveis para os 35 atletas da amostra original. Para recalcular os índices posicionais em toda a coorte histórica, primeiro importe um snapshot local autorizado para a coorte profissional, depois execute:
 
 ```bash
-python -m src.coleta.sofascore ids-profissionais
-# Confira data/manual/ids_sofascore_profissionais.csv e corrija IDs não encontrados.
-python -m src.coleta.sofascore coletar-profissionais
+python -m src.coleta.sofascore importar caminho/para/snapshot.csv --destino profissionais
 python -m src.analise.indices_profissionais
 python -m src.db
 ```
 
-A coleta usa a API não oficial do Sofascore, pausa entre requisições e mantém cache para poder continuar depois de interrupções. O cálculo usa as métricas configuradas em `config/metricas.yaml`; índices só são exibidos quando pelo menos 50% das métricas do índice estão disponíveis. Jogadores sem cobertura suficiente continuam sem nota. A inclusão desses atletas muda a referência dos percentis e pode alterar também os valores dos 35 jogadores já analisados. O frontend mostra jogos × minutos e índices técnico × explosivo em gráficos separados, com botões de lupa para zoom. Esse recorte histórico não equivale aos elencos atuais.
+O cálculo usa as métricas e pesos configurados em `config/metricas.yaml`; índices só são exibidos quando pelo menos 50% das métricas do índice estão disponíveis. Jogadores sem cobertura suficiente continuam sem nota. A inclusão desses atletas muda a referência dos percentis e pode alterar também os valores dos 35 jogadores já analisados. O frontend mostra jogos × minutos e índices técnico × explosivo em gráficos separados, com botões de lupa para zoom. Esse recorte histórico não equivale aos elencos atuais.
 
 Exemplo para consultar os jogadores e índices:
 
@@ -233,7 +236,7 @@ npm run build
 ### Ordem do pipeline
 
 1. Criação do esquema (`sql/01_schema.sql`)
-2. Coleta (`src/coleta/`), salva em `data/raw/`
+2. Entradas locais: arquivos do dataset em `data/raw/`, snapshots autorizados validados em `data/interim/` e conferência manual
 3. Tratamento: limpeza, integração, por 90 minutos e percentis
 4. Features: índices técnico e explosivo
 5. Análise: descritiva, Kruskal-Wallis, Mann-Whitney e tamanho de efeito
@@ -246,7 +249,7 @@ npm run build
 **Implementado**
 
 - [x] Seleção de jogadores confirmados manualmente; amostra atual de 35 atletas, até 15 por academia.
-- [x] Coleta/preparação de dados Transfermarkt e Sofascore.
+- [x] Preparação dos dados Transfermarkt e importação validada de snapshots locais de estatísticas.
 - [x] Padronização por 90 minutos, percentis posicionais e índices configuráveis.
 - [x] Estatística descritiva, Kruskal–Wallis, Mann–Whitney com Bonferroni e tamanho de efeito.
 - [x] Gráficos PNG, dashboard Streamlit e frontend React.

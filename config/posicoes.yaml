@@ -30,13 +30,13 @@ categorias:
   meia_ofensivo_ponta:
     descricao: "Meia ofensivo / ponta"
     posicoes_primarias: ["Midfield", "Attack"]
-    sub_posicoes: ["Attacking Midfield", "Left Winger", "Right Winger"]
+    sub_posicoes: ["Attacking Midfield", "Left Winger", "Right Winger", "Left Midfield", "Right Midfield"]
     fallback: "Midfield"
 
   centroavante:
     descricao: "Centroavante"
     posicoes_primarias: ["Attack"]
-    sub_posicoes: ["Centre-Forward"]
+    sub_posicoes: ["Centre-Forward", "Second Striker"]
     fallback: "Attack"
 
 regras:

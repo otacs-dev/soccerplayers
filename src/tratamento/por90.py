@@ -7,7 +7,7 @@ Rodar da raiz do projeto:
 
 Entradas : data/processed/jogadores_validos.csv
            data/raw/appearances.csv                   (Kaggle/Transfermarkt)
-           data/interim/sofascore_temporada.csv       (opcional, do sofascore.py)
+           data/interim/sofascore_temporada.csv       (opcional, snapshot local validado)
 Saídas   : data/interim/por90_appearances.csv   uma linha por jogador e temporada
            data/interim/por90_sofascore.csv     uma linha por jogador, temporada,
                                                 torneio e métrica
@@ -98,7 +98,7 @@ def tabela_appearances(validos):
 def tabela_sofascore(arquivo=ARQ_SOFASCORE):
     if not arquivo.exists():
         print(f"Aviso: {arquivo.name} não existe ainda. "
-              "Pulei a parte do Sofascore (rode src.coleta.sofascore coletar).")
+              "Pulei a parte do Sofascore (importe um snapshot local autorizado).")
         return None
 
     s = pd.read_csv(arquivo, encoding="utf-8-sig")

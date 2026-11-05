@@ -134,9 +134,9 @@ function SourcesPage({ onBack }: { onBack: () => void }) {
       <article className="source-card">
         <div className="source-card-top"><span className="source-icon"><Activity size={18} /></span><span className="source-tag">ESTATÍSTICAS POR TEMPORADA</span></div>
         <h2>Sofascore</h2>
-        <p>Estatísticas de passes, dribles e duelos foram coletadas por temporada. Os IDs do Sofascore foram associados ao identificador do Transfermarkt e conferidos em uma tabela manual.</p>
+        <p>Estatísticas de passes, dribles e duelos são organizadas por temporada a partir de snapshots locais autorizados. Cada atleta é associado ao identificador Transfermarkt conferido pelo grupo; o projeto não coleta dados diretamente do serviço.</p>
         <a href="https://www.sofascore.com/" target="_blank" rel="noreferrer">Acessar Sofascore <ExternalLink size={14} /></a>
-        <small>IDs revisados em <code>data/manual/ids_sofascore.csv</code></small>
+        <small>Snapshots locais validados por <code>src/coleta/sofascore.py</code></small>
       </article>
       <article className="source-card">
         <div className="source-card-top"><span className="source-icon"><Users size={18} /></span><span className="source-tag">CONFERÊNCIA DOS ATLETAS</span></div>
@@ -159,7 +159,7 @@ function SourcesPage({ onBack }: { onBack: () => void }) {
       <div className="source-caveat"><span>NOTA SOBRE FBREF</span><p>O README menciona o FBref como referência para dados básicos. Porém, a extração automatizada atualmente documentada no pipeline usa appearances do dataset Kaggle/Transfermarkt e estatísticas do Sofascore. Por isso, o painel não atribui métricas do resultado ao FBref.</p><a href="https://fbref.com/" target="_blank" rel="noreferrer">Abrir FBref <ExternalLink size={13} /></a></div>
     </section>
     <section className="source-bibliography"><div><span>REFERÊNCIAS DO ESTUDO</span><h2>Leituras que fundamentam o projeto</h2></div><ul><li>Ford, P. R. e Williams, A. M. (2012). <em>The developmental activities engaged in by elite youth soccer players who progressed to professional status compared to those who did not.</em> Psychology of Sport and Exercise, 13(3), 349–352.</li><li>Gledhill, A., Harwood, C. e Forsdyke, D. (2017). <em>Psychosocial factors associated with talent development in football: a systematic review.</em> Psychology of Sport and Exercise, 31, 93–112.</li><li>Satish, K. et al. (2025). <em>Possession football: the playing style that defined FC Barcelona's success and the Spanish national football team's golden generation.</em> Managing Sport and Leisure.</li></ul></section>
-    <div className="source-ethics"><ShieldCheck size={16} /><p>As fontes têm termos de uso próprios. O Sofascore é coletado por uma API não oficial, que pode mudar; a coleta deve respeitar os limites e as condições de cada serviço.</p></div>
+    <div className="source-ethics"><ShieldCheck size={16} /><p>As fontes têm termos de uso próprios. O projeto não consulta APIs do Sofascore: o grupo deve usar apenas snapshots locais cuja obtenção e reutilização estejam autorizadas.</p></div>
   </section>
 }
 
@@ -173,10 +173,10 @@ const projectSections = [
       ['config/settings.py', 'Concentra caminhos, clubes, critérios de seleção e parâmetros usados pelo pipeline.'],
       ['data/raw/', 'Arquivos originais obtidos das fontes. Preservados sem alterações para rastreabilidade.'],
       ['data/raw/players.csv, appearances.csv e transfers.csv', 'Tabelas de atletas, partidas e transferências do conjunto player-scores.'],
-      ['data/raw/sofascore/*.json', 'Respostas originais em cache das estatísticas por jogador, temporada e competição.'],
-      ['data/manual/', 'Tabelas revisadas pelo grupo: jogadores válidos, IDs do Sofascore e conferência das academias.'],
+      ['data/raw/sofascore/*.json', 'Cache legado de coleta, não usado pelo fluxo atual.'],
+      ['data/manual/', 'Tabelas revisadas pelo grupo: jogadores válidos e conferência das academias.'],
       ['data/manual/jogadores_validos.csv', 'Seleção revisada de atletas, com clube formador, estreia, minutos e fonte de conferência.'],
-      ['data/manual/ids_sofascore.csv', 'Correspondência entre o ID do jogador no projeto e o ID usado pelo Sofascore.'],
+      ['data/manual/ids_sofascore.csv', 'Mapeamento histórico; o snapshot atual já deve conter o ID Transfermarkt conferido.'],
       ['data/manual/metodos_academias.csv', 'Registro qualitativo dos métodos das academias e das fontes consultadas.'],
       ['data/interim/ e data/processed/', 'Resultados intermediários e tabelas finais, limpas e prontas para análise.'],
       ['data/interim/candidatos_formados.csv', 'Lista ampla de possíveis jogadores formados, preparada para conferência manual.'],
@@ -198,13 +198,13 @@ const projectSections = [
       ['run_pipeline.py', 'Orquestra as etapas analíticas e grava os resultados processados e gráficos.'],
       ['src/coleta/', 'Módulos de coleta e preparação de jogadores, estatísticas e dados complementares.'],
       ['src/coleta/transfermarkt.py', 'Lê os CSVs do Kaggle e monta candidatos à amostra de jogadores formados.'],
-      ['src/coleta/sofascore.py', 'Localiza IDs e coleta estatísticas sazonais, mantendo cópias em cache.'],
+      ['src/coleta/sofascore.py', 'Valida e importa snapshots locais autorizados de estatísticas sazonais.'],
       ['src/coleta/uefa_youth.py e bdfutbol.py', 'Validam e normalizam CSVs locais previamente obtidos; não fazem scraping.'],
       ['src/tratamento/', 'Integra bases, trata valores ausentes, padroniza por 90 minutos e calcula percentis.'],
       ['src/tratamento/integracao.py e limpeza.py', 'Juntam fontes por ID validado e verificam a qualidade sem descartar observações.'],
       ['src/tratamento/por90.py e percentis.py', 'Padronizam as taxas de jogo e posicionam os valores dentro dos grupos.'],
       ['src/features/', 'Constrói índices e características da trajetória dos jogadores.'],
-      ['src/features/indices.py, carreira.py e trajetoria.py', 'Calculam índices e resumem aparições profissionais e temporadas de formação observadas.'],
+      ['run_pipeline.py, src/features/carreira.py e trajetoria.py', 'Calculam índices e resumem aparições profissionais e temporadas de formação observadas.'],
       ['src/db.py e sql/01_schema.sql', 'Conectam ao banco e definem as tabelas relacionais do projeto.'],
       ['sql/02_indices.sql e 03_views.sql', 'Consultam índices e organizam visões prontas para análise.'],
       ['sql/04_qualidade_dados.sql', 'Reúne verificações de consistência dos registros no banco.'],
@@ -234,8 +234,8 @@ const projectSections = [
       ['tests/', 'Testes automatizados que protegem cálculos, tratamento e funcionamento do pipeline.'],
       ['tests/test_pipeline.py e test_estatistica.py', 'Conferem a execução do fluxo e os resultados das análises estatísticas.'],
       ['tests/test_por90.py e test_percentis.py', 'Verificam padronização por minutos e cálculo dos percentis.'],
-      ['tests/test_indices.py, test_descritiva.py e test_graficos.py', 'Protegem a construção dos índices, resumos e visualizações.'],
-      ['tests/test_sofascore.py', 'Confere as rotinas de tratamento e leitura das estatísticas coletadas.'],
+      ['tests/test_pipeline.py, test_descritiva.py e test_graficos.py', 'Protegem a construção dos índices, resumos e visualizações.'],
+      ['tests/test_sofascore.py', 'Confere a validação e importação de snapshots locais.'],
       ['README.md', 'Guia do projeto: pergunta, escopo, fontes, metodologia, execução e limitações.'],
       ['frontend/', 'Interface React + TypeScript para explorar indicadores, atletas, metodologia e fontes.'],
       ['frontend/src/App.tsx e App.css', 'Implementam as páginas, interações e apresentação visual do dashboard.'],
@@ -250,9 +250,9 @@ function ProjectPage({ onBack }: { onBack: () => void }) {
   const [activeStep, setActiveStep] = useState(0)
   const steps = [
     { number: '01', title: 'Selecionar', description: '35 jogadores validados em quatro academias.', section: 'dados', files: [['data/manual/jogadores_validos.csv', 'A lista revisada de atletas que atende aos critérios do estudo.'], ['src/coleta/transfermarkt.py', 'Gera os candidatos iniciais a partir de jogadores, aparições e transferências.'], ['config/settings.py', 'Registra os clubes e os critérios de estreia e minutos usados na seleção.']] },
-    { number: '02', title: 'Integrar', description: 'Conectar fontes por identificador do jogador.', section: 'pipeline', files: [['data/manual/ids_sofascore.csv', 'Relaciona os IDs do projeto aos IDs encontrados no Sofascore.'], ['src/tratamento/integracao.py', 'Combina as bases usando o identificador do jogador e valida a cardinalidade.'], ['data/raw/players.csv e transfers.csv', 'Complementam a seleção com perfil e histórico de transferências.']] },
+    { number: '02', title: 'Integrar', description: 'Conectar fontes por identificador do jogador.', section: 'pipeline', files: [['data/interim/sofascore_temporada.csv', 'Snapshot local validado com ID Transfermarkt, temporada, torneio e métrica.'], ['src/tratamento/integracao.py', 'Combina as bases usando o identificador do jogador e valida a cardinalidade.'], ['data/raw/players.csv e transfers.csv', 'Complementam a seleção com perfil e histórico de transferências.']] },
     { number: '03', title: 'Padronizar', description: 'Comparar métricas por 90 minutos e posição.', section: 'pipeline', files: [['src/tratamento/por90.py', 'Coloca estatísticas de jogo na escala comum por 90 minutos.'], ['src/tratamento/percentis.py', 'Calcula percentis comparáveis dentro das categorias posicionais.'], ['config/metricas.yaml e posicoes.yaml', 'Definem métricas dos índices e agrupamentos de posição.']] },
-    { number: '04', title: 'Analisar', description: 'Índices, estatística descritiva e testes.', section: 'analise', files: [['src/features/indices.py', 'Monta os índices técnico e explosivo a partir dos percentis.'], ['src/analise/descritiva.py e testes.py', 'Resume os grupos e testa diferenças entre academias.'], ['data/processed/kruskal_wallis.csv', 'Guarda o resultado do teste global para os dois índices.']] },
+    { number: '04', title: 'Analisar', description: 'Índices, estatística descritiva e testes.', section: 'analise', files: [['run_pipeline.py', 'Monta os índices ponderados a partir dos percentis posicionais.'], ['src/analise/descritiva.py e testes.py', 'Resume os grupos e testa diferenças entre academias.'], ['data/processed/kruskal_wallis.csv', 'Guarda o resultado do teste global para os dois índices.']] },
     { number: '05', title: 'Comunicar', description: 'Dashboard, gráficos e documentação.', section: 'qualidade', files: [['frontend/src/App.tsx e App.css', 'Apresentam o dashboard e as páginas interativas do projeto.'], ['reports/graficos/', 'Reúne gráficos exportados para explorar e apresentar os resultados.'], ['README.md e notebooks/', 'Documentam a execução e comunicam o processo e os resultados.']] },
   ] as const
 
@@ -400,7 +400,7 @@ function App() {
             <article className="panel"><div className="panel-heading"><div><small>COMPARAÇÃO ENTRE GRUPOS</small><h2>Índice por academia</h2></div><span className="unit-label">MEDIANA · 0—100</span></div><div className="chart-legend">{Object.entries(colors).map(([name, color]) => <span key={name}><i style={{ backgroundColor: color }} />{labels[name]}</span>)}</div><div className="median-chart"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={chartData} margin={{ top: 10, right: 12, bottom: 1, left: -20 }}><CartesianGrid vertical={false} stroke="#e9e9e2" strokeDasharray="3 5" /><XAxis dataKey="academia" axisLine={false} tickLine={false} tick={{ fill: '#777d75', fontSize: 11 }} tickFormatter={(value: string) => labels[value] ?? value} dy={9} /><YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} axisLine={false} tickLine={false} tick={{ fill: '#969b94', fontSize: 10 }} /><Tooltip content={({ active, payload }) => active && payload?.length ? <div className="chart-tooltip"><strong>{labels[String(payload[0].payload.academia)]}</strong><span>Mediana <b>{number(Number(payload[0].value))}</b></span><span>Atletas <b>{payload[0].payload.n}</b></span></div> : null} /><Scatter dataKey="mediana" r={7}>{chartData.map((entry) => <Cell key={entry.academia} fill={colors[entry.academia]} stroke="#fff" strokeWidth={2} />)}</Scatter></ComposedChart></ResponsiveContainer></div><div className="panel-footnote">ⓘ Amostras pequenas; leia as medianas junto aos quartis e ao valor-p.</div></article>
             <article className="panel">
               <div className="panel-heading">
-                <div><small>PERFIL PROFISSIONAL · ÍNDICES CALCULADOS</small><h2>Técnica × explosividade</h2><p className="panel-subtitle">{hasHistoricalScores ? 'Percentis posicionais recalculados na coorte histórica; cada índice exige cobertura mínima de 50% das métricas previstas.' : `Pontuações comparáveis ainda disponíveis para ${scoreChartData.length} atletas da amostra original. Para expandir, colete as métricas Sofascore da coorte histórica e recalcule os índices.`}</p></div>
+                <div><small>PERFIL PROFISSIONAL · ÍNDICES CALCULADOS</small><h2>Técnica × explosividade</h2><p className="panel-subtitle">{hasHistoricalScores ? 'Percentis posicionais recalculados na coorte histórica; cada índice exige cobertura mínima de 50% das métricas previstas.' : `Pontuações comparáveis ainda disponíveis para ${scoreChartData.length} atletas da amostra original. Para expandir, importe um snapshot local autorizado da coorte histórica e recalcule os índices.`}</p></div>
                 <div className="zoom-controls" role="group" aria-label="Controles de zoom do gráfico de índices">
                   <button onClick={() => changeZoom(scoreRange, setScoreRange, scoreChartData.length, 0.65)} title="Aproximar" aria-label="Aproximar gráfico"><ZoomIn size={15} /></button>
                   <button onClick={() => changeZoom(scoreRange, setScoreRange, scoreChartData.length, 1 / 0.65)} title="Afastar" aria-label="Afastar gráfico"><ZoomOut size={15} /></button>

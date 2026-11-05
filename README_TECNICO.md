@@ -8,6 +8,8 @@ O fluxo analítico principal está implementado: a partir da seleção validada 
 
 O pipeline também gera a base profissional histórica separada, atualmente com 580 vínculos jogador-clube e 559 jogadores únicos observados entre 2012 e 2026. O frontend mostra essa população em um gráfico interativo de jogos × minutos; formação é marcada como confirmada apenas para os 35 atletas revisados, e índices não são inferidos para os demais.
 
+As estatísticas por temporada entram por snapshots CSV locais cuja obtenção e reutilização estejam autorizadas. O projeto não automatiza consultas ao Sofascore nem tenta contornar controles de acesso.
+
 Os importadores de trajetória e a análise de Spearman são recursos opcionais: dependem de arquivos locais de temporadas conferidos. O quadro **O que falta** registra as limitações remanescentes.
 
 ## Arquitetura em uma visão
@@ -46,11 +48,11 @@ O identificador do jogador do Transfermarkt (`player_id`) é a chave de integra�
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `README.md` | Apresentação do problema, escopo, fontes, metodologia e instruções resumidas. Seu checklist e parte do texto metodológico precisam ser alinhados ao estado atual; ver **O que falta**. |
+| `README.md` | Apresentação do problema, escopo, fontes, metodologia e instruções resumidas. |
 | `README_TECNICO.md` | Este guia: arquitetura, descrição dos módulos, comandos e situação de implementação. |
 | `run_pipeline.py` | Executa o fluxo analítico completo, valida entradas, gera dados processados e exporta gráficos PNG. Não cria nem atualiza o SQLite. |
 | `requirements.txt` | Dependências Python do pipeline, testes, visualização, notebooks e exportação PNG, incluindo SciPy, pandas, Plotly, Kaleido e nbformat. |
-| `.env.example` | Modelo de variáveis de ambiente opcionais. Não contém credenciais válidas. |
+| `.env.example` | Informa que o fluxo atual não exige variáveis de ambiente. |
 | `.gitignore` | Exclui dados brutos e intermediários, ambiente virtual, caches Python e resultados locais indicados. |
 
 ### `config/`
@@ -70,7 +72,7 @@ Contém dados de entrada e artefatos tabulares. Confira os termos de uso e a pro
 #### `data/raw/`
 
 - `players.csv`, `appearances.csv` e `transfers.csv`: tabelas originais do conjunto `davidcariboo/player-scores` no Kaggle, baseado em dados Transfermarkt.
-- `sofascore/*.json`: respostas em cache da coleta por jogador, temporada e competição. São arquivos brutos de apoio; não devem ser editados manualmente.
+- `sofascore/*.json`: arquivos legados de cache, se presentes; o fluxo atual não coleta nem lê esses arquivos.
 - `info.txt` e `.gitkeep`: notas e preservação da estrutura da pasta.
 
 #### `data/manual/`
@@ -78,15 +80,15 @@ Contém dados de entrada e artefatos tabulares. Confira os termos de uso e a pro
 | Arquivo | Responsabilidade |
 |---|---|
 | `jogadores_validos.csv` | Planilha de candidatos revisada pelo grupo, com confirmação de formação e fonte/justificativa de conferência. |
-| `ids_sofascore.csv` | Associação entre `player_id` do projeto e ID de jogador no Sofascore. |
-| `ids_sofascore_profissionais.csv` | Mapeamento de IDs Sofascore para a coorte histórica; revise os casos não encontrados antes da coleta ampla. |
+| `ids_sofascore.csv` | Mapeamento histórico de IDs conferidos; a importação atual usa `id_tm` já associado no snapshot local. |
+| `ids_sofascore_profissionais.csv` | Mapeamento histórico da coorte profissional; não é consumido pelo importador atual. |
 | `metodos_academias.csv` | Descrição qualitativa dos métodos de formação das quatro academias. As fontes registradas precisam ser conferidas e especificadas por linha para uma entrega bibliográfica rigorosa. |
 
 #### `data/interim/`
 
 - `candidatos_formados.csv`: candidatos iniciais gerados a partir de aparições e transferências para revisão humana.
-- `sofascore_temporada.csv`: estatísticas brutas organizadas por jogador, temporada, torneio e métrica.
-- `sofascore_profissionais.csv`: estatísticas Sofascore coletadas para a coorte histórica ampliada, preservando a amostra original separadamente.
+- `sofascore_temporada.csv`: snapshot local validado, organizado por jogador, temporada, torneio e métrica.
+- `sofascore_profissionais.csv`: snapshot local validado para a coorte histórica ampliada.
 - `por90_appearances.csv`: métricas de aparições agregadas por jogador e temporada, incluindo minutos e taxas por 90.
 - `por90_sofascore.csv`: métricas do Sofascore com minutos, tipo da métrica e valor por 90 quando aplicável.
 - `info.txt` e `.gitkeep`: notas e estrutura da pasta.
@@ -105,7 +107,7 @@ Contém dados de entrada e artefatos tabulares. Confira os termos de uso e a pro
 | `descritiva_academias.csv` | `n`, ausências, mediana, quartis, mínimo e máximo por academia e índice. |
 | `kruskal_wallis.csv` | Estatística e valor-p dos testes globais dos dois índices. |
 | `mann_whitney_bonferroni.csv` | Testes pareados, p-valor bruto e ajustado, diferença de medianas e rank-biserial. |
-| `formacao_jogadores.sqlite3` | Banco SQLite local criado/atualizado por `python -m src.db`; é um artefato regenerável dos CSVs. |
+| `formacao_jogadores.sqlite3` | Banco SQLite local criado/atualizado por `python -m src.db`; é a camada relacional para consultas e validações SQL, regenerável dos CSVs e ignorado pelo Git. |
 | `info.txt` e `.gitkeep` | Notas e estrutura da pasta. |
 
 ### `src/`
@@ -115,7 +117,7 @@ Código Python do projeto, dividido por responsabilidade.
 #### `src/coleta/`
 
 - `transfermarkt.py`: lê `players.csv`, `appearances.csv` e `transfers.csv`; monta candidatos; atualiza a planilha manual sem apagar conferências existentes; gera a seleção final segundo `settings.py`.
-- `sofascore.py`: resolve IDs e coleta estatísticas por temporada para a amostra original ou a coorte profissional, usando cache local e pausas entre requisições. A API usada não é oficial e pode mudar.
+- `sofascore.py`: valida e importa snapshots CSV locais autorizados para a amostra ou a coorte profissional; não faz requisições externas.
 - `bdfutbol.py`: valida e normaliza temporadas de formação em um CSV local previamente obtido; não faz scraping.
 - `uefa_youth.py`: valida e normaliza participações da UEFA Youth League em um CSV local previamente obtido; não faz scraping.
 - `__init__.py`: marca o pacote Python.
@@ -123,14 +125,13 @@ Código Python do projeto, dividido por responsabilidade.
 #### `src/tratamento/`
 
 - `por90.py`: cria as tabelas intermediárias de aparições e Sofascore, calcula taxas por 90 e marca amostras abaixo do mínimo de minutos.
-- `percentis.py`: converte posições para categorias funcionais e contém utilitários de percentis/categorização.
+- `percentis.py`: converte combinações conhecidas de posição e subposição em categorias funcionais; rejeita posições desconhecidas.
 - `integracao.py`: junta tabelas pelo `player_id` Transfermarkt, com validação explícita da cardinalidade; usado por `run_pipeline.py` e pelas features.
 - `limpeza.py`: normaliza colunas, textos e IDs sem descartar observações; rejeita IDs inválidos ou duplicados. Chamado pelo pipeline.
 - `__init__.py`: marca o pacote Python.
 
 #### `src/features/`
 
-- `indices.py`: funções reutilizáveis para ler a configuração de métricas e agregar percentis em índices. O cálculo principal executado atualmente está na função `construir_indices()` de `run_pipeline.py`.
 - `trajetoria.py`: resume temporadas de formação por jogador e academia; conta temporadas observadas e não presume continuidade em lacunas da fonte.
 - `carreira.py`: calcula jogos, minutos, gols, assistências, temporadas com aparições e idade de estreia; chamado pelo pipeline e exportado em `carreira_jogadores.csv`.
 - `__init__.py`: marca o pacote Python.
@@ -142,7 +143,8 @@ Código Python do projeto, dividido por responsabilidade.
 - `efeito.py`: utilitários de tamanho de efeito usados pela análise.
 - `correlacao.py`: calcula correlações de Spearman entre features de trajetória e carreira, com tamanho mínimo de amostra e ajuste de Bonferroni. É exploratória e requer dados de trajetória estruturados.
 - `jogadores_profissionais.py`: agrega aparições históricas dos quatro clubes, identifica apenas formações confirmadas na seleção manual e anexa índices já calculados sem imputar valores. Gere com `python -m src.analise.jogadores_profissionais`.
-- `indices_profissionais.py`: recalcula os índices configurados em `metricas.yaml` usando percentis posicionais na coorte profissional; requer a coleta Sofascore ampliada e conserva como ausentes índices com menos de 50% de cobertura.
+- `indices_profissionais.py`: recalcula os índices ponderados configurados em `metricas.yaml` usando percentis posicionais na coorte profissional; requer um snapshot local e conserva como ausentes índices com menos de 50% de cobertura.
+- `lacunas_profissionais.py`: gera `data/processed/lacunas_estatisticas_profissionais.csv`, uma linha por jogador com presença por métrica, índices disponíveis e lista de lacunas. Gere com `python -m src.analise.lacunas_profissionais`. Presença de uma métrica indica pelo menos um valor local e não garante amostra suficiente para pontuação.
 - `__init__.py`: marca o pacote Python.
 
 #### `src/qualitativo/`
@@ -195,12 +197,11 @@ Imagens PNG de alta resolução produzidas ao final do pipeline:
 
 - `test_pipeline.py`: valida regras e saídas do fluxo analítico.
 - `test_por90.py`: testa taxas por 90, períodos e critérios mínimos de minutos.
-- `test_percentis.py`: testa categorização posicional e percentis.
-- `test_indices.py`: testa agregação dos índices.
+- `test_percentis.py`: testa a classificação de posições válidas e a rejeição de entradas desconhecidas; `test_pipeline.py` cobre o cálculo dos percentis.
 - `test_descritiva.py`: testa os resumos por academia.
 - `test_estatistica.py`: testa os testes não paramétricos e efeitos.
 - `test_graficos.py`: testa preparação dos dados e construção das figuras.
-- `test_sofascore.py`: testa rotinas de identificação e tratamento do Sofascore.
+- `test_sofascore.py`: testa validação e importação de snapshots locais.
 - `test_tratamento_trajetoria_carreira.py`: testa limpeza, junções por ID, importação de temporadas, features e correlação de Spearman.
 
 Executar da raiz: `python -m pytest`.
@@ -246,17 +247,27 @@ Depois do pipeline:
 python -m src.db
 ```
 
-O comando cria/atualiza `data/processed/formacao_jogadores.sqlite3` a partir dos CSVs. Para executar as verificações SQL, abra esse banco com uma ferramenta SQLite e rode `sql/04_qualidade_dados.sql`.
+O comando cria/atualiza `data/processed/formacao_jogadores.sqlite3` a partir dos CSVs. O arquivo fica local e não é versionado; o esquema e as consultas permanecem versionados em `sql/`. Para executar as verificações SQL, abra o banco com uma ferramenta SQLite e rode `sql/04_qualidade_dados.sql`.
 
-### Recriar a coleta do Sofascore
+### Importar um snapshot local de estatísticas
 
-Somente quando precisar atualizar estatísticas ou reconstruir a base intermediária:
+O projeto não consulta a API do Sofascore nem tenta contornar controles de acesso. Obtenha um snapshot de fonte cuja reutilização esteja autorizada, associe cada jogador ao seu `id_tm` Transfermarkt conferido e use as colunas `id_tm`, `temporada`, `torneio`, `metrica` e `valor`.
 
 ```bash
-python -m src.coleta.sofascore coletar
+python -m src.coleta.sofascore importar caminho/para/snapshot.csv
+# Para a coorte histórica:
+python -m src.coleta.sofascore importar caminho/para/snapshot.csv --destino profissionais
 ```
 
-Respeite os termos e limites de acesso do Sofascore. A coleta usa uma API não oficial e pode parar de funcionar se o serviço mudar.
+O importador valida campos, tipos e duplicatas antes de gravar em `data/interim/sofascore_temporada.csv` ou `data/interim/sofascore_profissionais.csv`. A origem e a permissão de uso dos dados devem ser documentadas pelo grupo.
+
+Para auditar os dados existentes e identificar métricas ausentes por jogador:
+
+```bash
+python -m src.analise.lacunas_profissionais
+```
+
+O relatório é regenerável a partir dos CSVs locais. `tem_<métrica>` significa que foi encontrado ao menos um valor para o atleta; `tem_snapshot_sofascore` indica qualquer registro no snapshot, enquanto `tem_metrica_sofascore_configurada` indica presença de ao menos uma métrica usada nos índices. A elegibilidade do índice é indicada separadamente pelas colunas de disponibilidade e cobertura.
 
 ### Importar temporadas de formação e analisar trajetória
 

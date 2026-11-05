@@ -5,7 +5,7 @@
 indices:
   tecnico:
     descricao: "Precisão, controle e inteligência com a bola"
-    agregacao: "media_dos_percentis"
+    agregacao: "media_ponderada_dos_percentis"
     fontes:
       - "sofascore"
       - "appearances"
@@ -53,7 +53,7 @@ indices:
 
   explosivo:
     descricao: "Capacidade física, velocidade, força e ganho de disputa"
-    agregacao: "media_dos_percentis"
+    agregacao: "media_ponderada_dos_percentis"
     fontes:
       - "sofascore"
       - "players"
@@ -98,7 +98,7 @@ indices:
 regras_gerais:
   - "Todos os valores entram padronizados por 90 minutos, exceto atributos fixos do perfil do jogador."
   - "Percentis são calculados dentro da posição; se a posição tiver poucos casos, usa o grupo de posição mais amplo."
-  - "A média dos percentis define o índice final, em escala 0 a 100."
+  - "A média ponderada dos percentis define o índice final, em escala 0 a 100."
   - "Metas e assistências entram no técnico, mas não substituem indicadores de construção e criação, que têm peso maior."
   - "Explosivo usa substitutos físicos e de disputa porque velocidade e força não estão em dados de eventos de forma direta."
 

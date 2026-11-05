@@ -1,21 +1,67 @@
 import pandas as pd
+import pytest
 
-from src.coleta.sofascore import ano_inicio, rotulo_temporada, ler_ids
-
-
-def test_ano_inicio_converte_formatos_esperados():
-    assert ano_inicio("2024") == 2024
-    assert ano_inicio("24/25") == 2024
-    assert ano_inicio("2023/24") == 2023
-    assert ano_inicio("2024/25") == 2024
+from config import settings
+from src.coleta.sofascore import importar_snapshot
 
 
-def test_rotulo_temporada_padroniza_ano_esportivo():
-    assert rotulo_temporada("2024") == "2024/25"
-    assert rotulo_temporada("2023/24") == "2023/24"
+def test_importa_snapshot_local_validado(tmp_path, monkeypatch):
+	interim = tmp_path / "interim"
+	monkeypatch.setattr(settings, "DIR_INTERIM", interim)
+	entrada = tmp_path / "snapshot.csv"
+	pd.DataFrame(
+		[
+			{
+				"id_tm": 123,
+				"temporada": "2023/24",
+				"torneio": "League",
+				"metrica": "accuratePasses",
+				"valor": 500,
+			}
+		]
+	).to_csv(entrada, index=False)
+
+	saida = importar_snapshot(entrada, "profissionais")
+
+	assert saida == interim / "sofascore_profissionais.csv"
+	importado = pd.read_csv(saida)
+	assert importado.loc[0, "id_tm"] == 123
+	assert importado.loc[0, "fonte"] == "snapshot_local_autorizado"
+	assert {"id_sofascore", "id_torneio"}.issubset(importado.columns)
 
 
-def test_ler_ids_retornou_df_com_colunas_necessarias():
-    df = ler_ids()
-    assert isinstance(df, pd.DataFrame)
-    assert {"id_tm", "nome", "id_sofascore", "status"}.issubset(set(df.columns))
+@pytest.mark.parametrize(
+	("colunas", "mensagem"),
+	[
+		(
+			{"temporada": ["2023/24"], "torneio": ["League"], "metrica": ["goals"], "valor": [1]},
+			"precisa conter as colunas",
+		),
+		(
+			{
+				"id_tm": [1, 1],
+				"temporada": ["2023/24", "2023/24"],
+				"torneio": ["League", "League"],
+				"metrica": ["goals", "goals"],
+				"valor": [1, 2],
+			},
+			"chaves jogador-temporada-torneio-métrica duplicadas",
+		),
+		(
+			{
+				"id_tm": ["id inválido"],
+				"temporada": ["2023/24"],
+				"torneio": ["League"],
+				"metrica": ["goals"],
+				"valor": [1],
+			},
+			"IDs Transfermarkt inteiros",
+		),
+	],
+)
+def test_importacao_rejeita_snapshot_invalido(tmp_path, colunas, mensagem):
+	entrada = tmp_path / "invalido.csv"
+	pd.DataFrame(colunas).to_csv(entrada, index=False)
+
+	with pytest.raises(ValueError, match=mensagem):
+		importar_snapshot(entrada)

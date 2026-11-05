@@ -2,7 +2,7 @@ import csv
 import sqlite3
 
 from config import settings
-from src.db import inicializar_banco
+from src.db import inicializar_banco, inicializar_esquema
 
 
 def _escrever_csv(caminho, colunas, linhas):
@@ -105,7 +105,7 @@ def test_inicializar_banco_carrega_jogadores_e_resultados_analiticos(tmp_path, m
 		],
 		[
 			{"player_id": 1, "clube": "Barcelona", "nome": "A", "position": "Midfield", "sub_position": "", "ano_primeira_aparicao": 2020, "ano_ultima_aparicao": 2022, "jogos_profissionais": 10, "minutos_profissionais": 900, "formacao_status": "confirmada", "indice_tecnico": 80, "indice_explosivo": 60, "url": ""},
-			{"player_id": 3, "clube": "Barcelona", "nome": "C", "position": "Defender", "sub_position": "", "ano_primeira_aparicao": 2018, "ano_ultima_aparicao": 2021, "jogos_profissionais": 5, "minutos_profissionais": 300, "formacao_status": "nao_confirmada", "indice_tecnico": "", "indice_explosivo": "", "url": ""},
+			{"player_id": 3, "clube": "Barcelona", "nome": "C", "position": "Defender", "sub_position": "", "ano_primeira_aparicao": 2018, "ano_ultima_aparicao": 2021, "jogos_profissionais": 5, "minutos_profissionais": 300, "formacao_status": "nao_confirmada", "indice_tecnico": 55, "indice_explosivo": 65, "url": ""},
 		],
 	)
 	_escrever_csv(
@@ -140,4 +140,56 @@ def test_inicializar_banco_carrega_jogadores_e_resultados_analiticos(tmp_path, m
 		assert conexao.execute("SELECT COUNT(*) FROM vw_metricas_jogador").fetchone()[0] == 2
 		assert conexao.execute("SELECT COUNT(*) FROM vw_resultados_academia").fetchone()[0] == 2
 		assert conexao.execute("SELECT COUNT(*) FROM vw_jogadores_profissionais").fetchone()[0] == 2
+		assert conexao.execute(
+			"SELECT indice_tecnico, indice_explosivo FROM jogador_profissional "
+			"WHERE player_id = 3"
+		).fetchone() == (55, 65)
 		assert conexao.execute("PRAGMA foreign_key_check").fetchall() == []
+
+
+def test_migra_restricao_legada_de_indices_de_formacao(tmp_path):
+	banco = tmp_path / "legacy.sqlite3"
+	with sqlite3.connect(banco) as conexao:
+		conexao.row_factory = sqlite3.Row
+		conexao.executescript(
+			"""
+			CREATE TABLE jogador_profissional (
+				player_id INTEGER NOT NULL,
+				clube_id INTEGER NOT NULL,
+				nome TEXT NOT NULL,
+				ano_primeira_aparicao INTEGER,
+				ano_ultima_aparicao INTEGER,
+				jogos_profissionais INTEGER NOT NULL,
+				minutos_profissionais REAL NOT NULL,
+				formacao_status TEXT NOT NULL,
+				indice_tecnico REAL,
+				indice_explosivo REAL,
+				url_perfil TEXT,
+				PRIMARY KEY (player_id, clube_id),
+				CHECK (
+					formacao_status = 'confirmada'
+					OR (indice_tecnico IS NULL AND indice_explosivo IS NULL)
+				)
+			);
+			INSERT INTO jogador_profissional (
+				player_id, clube_id, nome, jogos_profissionais, minutos_profissionais,
+				formacao_status, indice_tecnico, indice_explosivo
+			) VALUES (7, 1, 'Legado', 5, 400, 'nao_confirmada', NULL, NULL);
+			CREATE VIEW vw_jogadores_profissionais AS
+				SELECT * FROM jogador_profissional;
+			"""
+		)
+
+		inicializar_esquema(conexao)
+		assert tuple(conexao.execute(
+			"SELECT nome, formacao_status FROM jogador_profissional WHERE player_id = 7"
+		).fetchone()) == ("Legado", "nao_confirmada")
+		conexao.execute(
+			"""INSERT INTO jogador_profissional (
+				player_id, clube_id, nome, jogos_profissionais, minutos_profissionais,
+				formacao_status, indice_tecnico, indice_explosivo
+			) VALUES (8, 1, 'Índice sem formação confirmada', 5, 400, 'nao_confirmada', 55, 65)"""
+		)
+		assert tuple(conexao.execute(
+			"SELECT indice_tecnico, indice_explosivo FROM jogador_profissional WHERE player_id = 8"
+		).fetchone()) == (55, 65)
